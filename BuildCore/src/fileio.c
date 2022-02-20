@@ -2011,8 +2011,8 @@ rl_gets(char *promptstr, char *inputline)
 {
   int i;
   
-  fprintf(stdout, "?? "); fflush(stdout);
-  for (i = 0; i < INPUTSIZELIMIT-1;) {
+  fprintf(stdout, ">> "); fflush(stdout);
+  for (i = 0; i < INPUTSIZELIMIT-2;) {
     int ch = getchar();
     if (ch != '\n') {
       inputline[i++] = ch;
@@ -2020,7 +2020,11 @@ rl_gets(char *promptstr, char *inputline)
       break;
     }
   }
+  /* inputline[i++] = '\n'; */
   inputline[i++] = 0;
+  fprintf(stdout, "**read: %s\n", inputline); fflush(stdout);
+
+  return;
 }
 
 

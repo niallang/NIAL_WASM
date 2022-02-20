@@ -30,6 +30,11 @@ endif (USE_FASTMATH)
 set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OPTFLAGS}")
 
 # Linux specific settings
+if (CMAKE_SYSTEM_NAME MATCHES "Emscripten")
+  set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DLINUX -DUNIXSYS")
+endif (CMAKE_SYSTEM_NAME MATCHES "Emscripten")
+
+# Linux specific settings
 if (CMAKE_SYSTEM_NAME MATCHES "Linux")
   set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DLINUX -DUNIXSYS")
 endif (CMAKE_SYSTEM_NAME MATCHES "Linux")
@@ -84,6 +89,11 @@ set (NIAL_SRCS absmach.c
 
 
 # ---------------- Standard Libraries --------------------
+
+# Linux specific settings
+if (CMAKE_SYSTEM_NAME MATCHES "Emscripten")
+	set (NIAL_LIBS m)
+endif (CMAKE_SYSTEM_NAME MATCHES "Emscripten")
 
 # Linux specific settings
 if (CMAKE_SYSTEM_NAME MATCHES "Linux")
