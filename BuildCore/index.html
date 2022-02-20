@@ -3,10 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <title>EM Test</title>
-    <script type="text/javascript" src="nialcore.js"></script>
 </head>
 <body>
-Check browser console.
-
+    <div id="output"></div>
+    <script>
+var Module = {
+    print: s => {
+        const p = document.createElement("p");
+        p.innerHTML = s;
+        document.getElementById("output").appendChild(p);
+    }
+};
+    </script>
+    <script type="text/javascript" src="nialcore.js"></script>
 </body>
 </html>
