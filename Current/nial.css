@@ -1,0 +1,17 @@
+.nialout {
+    font-family: monospace, monospace;
+}
+
+.nialin {
+    font-weight: 500;
+    font-style: oblique;
+}
+
+pre {
+    display: block;
+    line-height: 50%;
+}
+
+body {
+    background-color: mint;
+}

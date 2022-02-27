@@ -1,0 +1,309 @@
+// worker.js
+ 
+// Polyfill instantiateStreaming for browsers missing it
+if (!WebAssembly.instantiateStreaming) {
+    WebAssembly.instantiateStreaming = async (resp, importObject) => {
+            const source = await (await resp).arrayBuffer();
+            return await WebAssembly.instantiate(source, importObject);
+    };
+}
+ 
+// Create promise to handle Worker calls whilst
+// module is still initialising
+let wasmResolve;
+let wasmReady = new Promise((resolve) => {
+    wasmResolve = resolve;
+})
+ 
+// Handle incoming messages
+self.addEventListener('message', function(event) {
+ 
+    const { eventType, eventData, eventId } = event.data;
+ 
+    if (eventType === "INITIALISE") {
+        WebAssembly.instantiateStreaming(fetch(eventData), {})
+            .then(instantiatedModule => {
+                const wasmExports = instantiatedModule.instance.exports;
+ 
+                // Resolve our exports for when the messages
+                // to execute functions come through
+                wasmResolve(wasmExports);
+ 
+                // Send back initialised message to main thread
+                self.postMessage({
+                    eventType: "INITIALISED",
+                    eventData: Object.keys(wasmExports)
+                });
+     
+            });
+    } else if (eventType === "CALL") {
+        wasmReady
+            .then((wasmInstance) => {
+                const method = wasmInstance[eventData.method];
+                const result = method.apply(null, eventData.arguments);
+                self.postMessage({
+                    eventType: "RESULT",
+                    eventData: result,
+                    eventId: eventId
+                });
+            })
+            .catch((error) => {
+                self.postMessage({
+                    eventType: "ERROR",
+                    eventData: "An error occured executing WASM instance function: " + error.toString(),
+                    eventId: eventId
+                });
+            })
+    }
+ 
+}, false);
+In the first code block, we provided a basic polyfill for instantiateStreaming which is the current recommended way of fetching, compiling, and initialising your WebAssembly program in one step. This polyfill is required for non-supporting evergreen browsers (currently Safari, Safari iOS, and Samsung Internet). We then go on to add an event listener for the worker, which listens for two events INITIALISE and CALL. INITIALISE runs the WASM initialisation step, and CALL runs a given function with the arguments against it.
+
+Now for the main thread code, let’s assume it’s contained in main.js. Here we’re going to send a INITIALISE message and listen for a RESULT message which we resolve in a corresponding Promise:
+
+// main.js
+ 
+function wasmWorker(modulePath) {
+ 
+    // Create an object to later interact with 
+    const proxy = {};
+ 
+    // Keep track of the messages being sent
+    // so we can resolve them correctly
+    let id = 0;
+    let idPromises = {};
+ 
+    return new Promise((resolve, reject) => {
+        const worker = new Worker('worker.js');
+        worker.postMessage({eventType: "INITIALISE", eventData: modulePath});
+        worker.addEventListener('message', function(event) {
+ 
+            const { eventType, eventData, eventId } = event.data;
+ 
+            if (eventType === "INITIALISED") {
+                const methods = event.data.eventData;
+                methods.forEach((method) => {
+                    proxy[method] = function() {
+                        return new Promise((resolve, reject) => {
+                            worker.postMessage({
+                                eventType: "CALL",
+                                eventData: {
+                                    method: method,
+                                    arguments: Array.from(arguments) // arguments is not an array
+                                },
+                                eventId: id
+                            });
+ 
+                            idPromises[id] = { resolve, reject };
+                            id++
+                        });
+                    }
+                });
+                resolve(proxy);
+                return;
+            } else if (eventType === "RESULT") {
+                if (eventId !== undefined && idPromises[eventId]) {
+                    idPromises[eventId].resolve(eventData);
+                    delete idPromises[eventId];
+                }
+            } else if (eventType === "ERROR") {
+                if (eventId !== undefined && idPromises[eventId]) {
+                    idPromises[eventId].reject(event.data.eventData);
+                    delete idPromises[eventId];
+                }
+            }
+             
+        });
+ 
+        worker.addEventListener("error", function(error) {
+            reject(error);
+        });
+    })
+ 
+}
+The purpose of this main thread code is to handle sending and receiving messages from the Worker which is handling our WASM code. We have a proxy object which we interact with from the main thread, rather than the WASM instance directly. IDs are used to track the requests and responses to make sure we resolve the right call to the right Promise. This abstraction exposes an object that we can interact with like an asynchronous version of the original exports object. Apart from being asynchronous, we also make the concession that properties are accessed as function calls rather than directly in this case.
+
+We could then go on to use our new abstraction:
+
+// main.js
+ 
+wasmWorker("./calculator.wasm").then((wasmProxyInstance) => {
+    wasmProxyInstance.add(2, 3)
+        .then((result) => {
+            console.log(result); // 5
+        })
+        .catch((error) => {
+            console.error(error);
+        });
+ 
+    wasmProxyInstance.divide(100, 10)
+        .then((result) => {
+            console.log(result); // 10
+        })
+        .catch((error) => {
+            console.error(error);
+        });
+});
+Using Inline Web Workers
+Another interesting feature of Web Workers is that with a bit of work they can get created inline. Inline Web Workers make use of the URL.createObjectURL and Blob browser API functions, and allow us to create a Worker without the need for an external resource. The Blob takes the function body we are trying to create as a string (using toString) which we can in turn pass to the createObjectURL method. Let’s take the above code and attempt to inline it. Note the goal here is not to write production grade inline web workers, but to demonstrate how they work!
+
+function wasmWorker(modulePath) {
+ 
+    let worker;
+    const proxy = {};
+    let id = 0;
+    let idPromises = {};
+ 
+    // Polyfill instantiateStreaming for browsers missing it
+    if (!WebAssembly.instantiateStreaming) {
+        WebAssembly.instantiateStreaming = async (resp, importObject) => {
+            const source = await (await resp).arrayBuffer();
+            return await WebAssembly.instantiate(source, importObject);
+        };
+    }
+ 
+    return new Promise((resolve, reject) => {
+ 
+        worker = createInlineWasmWorker(inlineWasmWorker, modulePath);
+        worker.postMessage({eventType: "INITIALISE", data: modulePath});
+ 
+        worker.addEventListener('message', function(event) {
+ 
+            const { eventType, eventData, eventId } = event.data;
+ 
+            if (eventType === "INITIALISED") {
+                const props = eventData;
+                props.forEach((prop) => {
+                    proxy[prop] = function() {
+                        return new Promise((resolve, reject) => {
+                            worker.postMessage({
+                                eventType: "CALL",
+                                eventData: {
+                                    prop: prop,
+                                    arguments: Array.from(arguments)
+                                },
+                                eventId: id
+                            });
+                            idPromises[id] = { resolve, reject };
+                            id++
+                        })
+                         
+                    }
+                })
+                resolve(proxy);
+                return;
+            } else if (eventType === "RESULT") {
+                if (eventId !== undefined && idPromises[eventId]) {
+                    idPromises[eventId].resolve(eventData);
+                    delete idPromises[eventId];
+                }
+            } else if (eventType === "ERROR") {
+                if (eventId !== undefined && idPromises[eventId]) {
+                    idPromises[eventId].reject(event.data.eventData);
+                    delete idPromises[eventId];
+                }
+            }
+        });
+        worker.addEventListener('error', function(error) {
+            reject(error)
+        })
+    })
+ 
+    function createInlineWasmWorker(func, wasmPath) {
+        if (!wasmPath.startsWith("http")) {
+            if (wasmPath.startsWith("/")) {
+                wasmPath = window.location.href + wasmPath
+            } else if (wasmPath.startsWith("./")) {
+                wasmPath = window.location.href + wasmPath.substring(1);
+            }
+        }
+ 
+        // Make sure the wasm path is absolute and turn into IIFE
+        func = `(${func.toString().trim().replace("WORKER_PATH", wasmPath)})()`;
+        const objectUrl = URL.createObjectURL(new Blob([func], { type: "text/javascript" }));
+        const worker = new Worker(objectUrl);
+        URL.revokeObjectURL(objectUrl);
+ 
+        return worker;
+    }
+ 
+    function inlineWasmWorker() {
+ 
+        let wasmResolve;
+        const wasmReady = new Promise((resolve) => {
+            wasmResolve = resolve;
+        })
+     
+        self.addEventListener('message', function(event) {
+            const { eventType, eventData, eventId } = event.data;
+ 
+            if (eventType === "INITIALISE") {     
+                WebAssembly.instantiateStreaming(fetch('WORKER_PATH'), {})
+                    .then(instantiatedModule => {
+                        const wasmExports = instantiatedModule.instance.exports;
+                        wasmResolve(wasmExports);
+                        self.postMessage({
+                            eventType: "INITIALISED",
+                            eventData: Object.keys(wasmExports)
+                        });
+                    })
+                    .catch((error) => {
+                        console.error(error);
+                    })
+ 
+            } else if (eventType === "CALL") {
+                wasmReady.then((wasmInstance) => {
+                    const prop = wasmInstance[eventData.prop];
+                    const result = typeof prop === 'function' ? prop.apply(null, eventData.arguments) : prop;
+                    self.postMessage({
+                        eventType: "RESULT",
+                        eventData: result,
+                        eventId: eventId
+                    });
+                })
+            } 
+ 
+        }, false);
+    }
+ 
+}
+This approach works, and you can use the same code as above for using this abstraction (i.e. the interface hasn’t changed). If you are looking for something a bit more robust in this domain, the wasm-worker library by Matteo Basso takes a slightly more flexible approach of passing a function which (after being turned into a string and back again) is executed in the context of the module so it can access it. wasm-worker has some additional features that might be beneficial such as supporting Transferables which are a low overhead way of transferring types like ArrayBuffers and ImageBitmaps. It is more extensible in allowing a specific importObject which is part of the WebAssembly instantiation interface and allows importing values to the WebAssembly instance such as functions. The following example uses wasm-worker:
+
+import wasmWorker from 'wasm-worker';
+ 
+wasmWorker('calculator.wasm')
+    .then(module => {
+        // We can write code that operates on the WASM module
+        return module.exports.add(1, 2);
+    })
+    .then(sum => {
+        console.log('1 + 2 = ' + sum);
+    })
+    .catch(exception => {
+        // exception is a string
+        console.error(exception);
+    });
+Conclusion
+It is now straightforward to use WebAssembly programs inside a Web Worker and leverage them from the main thread. We have shown how to do this in both a traditional way of using a separate JavaScript file and using an inline Web Worker approach. Lastly, we showed the usage for wasm-worker, a library which you can use in your projects to use inline workers today in your project. You can find the full code for these wasm-workers examples on GitHub.
+
+The benefit of putting your WASM logic in a worker is to improve user experience by keeping the main thread free. This allows the browser to keep rendering and handling user input, in turn keeping users happy. You may pay an overhead cost for transferring any data here if it is large, but depending on your data types, Transferables may allow you to offset this. Lastly, it’s important to remember that Web Workers and currently WebAssembly do not support direct DOM operations, which limits them to non-DOM bound work. Even with this limitation, there are still many great use cases for this combination, for example check out how eBay created a barcode scanner that leverages both technologies!
+
+If you need help creating an application the provides an optimal end-user experience leveraging modern web technologies, please contact us to discuss how we can help!
+
+Search
+Search...
+
+
+Learn more about how SitePen can be your partner.
+We are committed to achieving technical objectives, solving critical business problems and can put you on the right path to building applications the right way the first time. Schedule a free strategy session with our technical leadership team to learn more.
+
+LET'S CONNECT
+ABOUT
+CAREERS
+OPEN SOURCE
+TS CONF
+TALKSCRIPT.FM
+MILESTONE MAYHEM
+CONTACT
+© 2021 SitePen, Inc. All Rights Reserved.
+Privacy Policy

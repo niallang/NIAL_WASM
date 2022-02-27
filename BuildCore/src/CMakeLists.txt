@@ -31,7 +31,7 @@ set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OPTFLAGS}")
 
 # Linux specific settings
 if (CMAKE_SYSTEM_NAME MATCHES "Emscripten")
-  set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DLINUX -DUNIXSYS")
+  set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DLINUX -DUNIXSYS -DEMSCRIPTEN")
 endif (CMAKE_SYSTEM_NAME MATCHES "Emscripten")
 
 # Linux specific settings

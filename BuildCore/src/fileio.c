@@ -58,6 +58,9 @@
 #include "linenoise.h"
 #endif
 
+#ifdef EMSCRIPTEN
+#include <emscripten.h>
+#endif
 
 static int  putlines(FILE * fptr, nialptr y);
 static int  block_array(FILE * fpr, nialptr x);
@@ -2007,23 +2010,53 @@ static char *line_read = (char *)NULL;
    adding it to the input history if not empty. */
 
 void
-rl_gets(char *promptstr, char *inputline)
-{
+rl_gets(char *promptstr, char *inputline) {
+
+#ifdef EMSCRIPTEN
+  char *nem_input = NULL;
+  int i;
+  
+  nem_input = (char *)EM_ASM_INT({
+      var evs = prompt(' '.repeat(64));
+      var evslen = lengthBytesUTF8(evs)+1;
+
+      var wasmStr = _malloc(evslen);
+      stringToUTF8(evs, wasmStr, evslen);
+
+      return wasmStr;
+    });
+  
+  for (i = 0; i < INPUTSIZELIMIT-2; i++) {
+    int ch = nem_input[i];
+    
+    inputline[i] = nem_input[i];
+    if (ch == 0)
+      break;
+  }
+
+  free(nem_input);
+
+  fprintf(stdout, "\n    %s\n\n", inputline);
+  fflush(stdout);
+  
+#else
   int i;
   
   fprintf(stdout, ">> "); fflush(stdout);
   for (i = 0; i < INPUTSIZELIMIT-2;) {
     int ch = getchar();
-    if (ch != '\n') {
-      inputline[i++] = ch;
-    } else {
+    if (ch == 0 || ch == EOF || ch == '\n') {
       break;
+    } else {
+      inputline[i++] = ch;
     }
   }
   /* inputline[i++] = '\n'; */
   inputline[i++] = 0;
   fprintf(stdout, "**read: %s\n", inputline); fflush(stdout);
 
+#endif
+  
   return;
 }
 

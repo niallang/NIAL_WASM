@@ -2,19 +2,64 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>EM Test</title>
+    <title>EM Test JQuery</title>
+    <link rel="stylesheet" href="nial.css">
+    <script type="text/javascript" src="http://code.jquery.com/jquery-latest.js"></script>
 </head>
 <body>
-    <div id="output"></div>
-    <script>
-var Module = {
-    print: s => {
-        const p = document.createElement("p");
-        p.innerHTML = s;
-        document.getElementById("output").appendChild(p);
+
+  <!-- Input processing for Nial -->
+
+  <!--
+  <div id="input">
+    <h2>Nial Command Input</h2><br/>
+    <span> Enter a nial command in the following input area then press the Execute button</span><br>
+    <textarea id="gets_buffer" cols="80" rows="6"></textarea><br/>
+    <button onclick="execnial()">Execute</button>
+  </div>
+
+  -->
+  <div id="output" name="output" class="nialout"></div>
+
+
+  <script>
+    // use a global variable to pass input to nial
+    window.nial_input = '';
+    
+    var Module = {
+	
+	// Output redirection
+	print: s => {
+	    //alert(s);
+	    $("#output").append('<pre class="nialout">' + s +'</pre>');
+	}
     }
-};
+
+    function execnial() {
+	var s = $("#gets_buffer").val();
+
+	$("#gets_buffer").val('');
+	
+	var ps = s.replace(/\n/g, "<br/>   ");
+	$("#output").append('<br/><span class="nialin">' + ps + '</span><br/>');
+	
+	var ns = s.replace(/\r/g, ' ');
+	ns = ns.replace(/\n/g, ' ');
+	
+	window.nial_input = ns;
+	
+	alert(window.nial_input);
+    }
+    
     </script>
-    <script type="text/javascript" src="nialcore.js"></script>
+    
+
+  <!-- Invocation of Nial via WebASM -->
+  
+  <script type="text/javascript" src="nialcore.js"></script>
+
+
+  
+    
 </body>
 </html>
