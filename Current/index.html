@@ -8,29 +8,24 @@
 </head>
 <body>
 
-  <!-- Input processing for Nial -->
-
-  <!--
-  <div id="input">
+   <div id="input">
     <h2>Nial Command Input</h2><br/>
     <span> Enter a nial command in the following input area then press the Execute button</span><br>
     <textarea id="gets_buffer" cols="80" rows="6"></textarea><br/>
     <button onclick="execnial()">Execute</button>
   </div>
 
-  -->
+  <hr/>
+  <h2>Nial Output Buffer</h2><br/> 
   <div id="output" name="output" class="nialout"></div>
 
 
   <script>
-    // use a global variable to pass input to nial
     window.nial_input = '';
     
     var Module = {
 	
-	// Output redirection
 	print: s => {
-	    //alert(s);
 	    $("#output").append('<pre class="nialout">' + s +'</pre>');
 	}
     }
@@ -41,23 +36,20 @@
 	$("#gets_buffer").val('');
 	
 	var ps = s.replace(/\n/g, "<br/>   ");
-	$("#output").append('<br/><span class="nialin">' + ps + '</span><br/>');
+	$("#output").append('<br><pre class="nialin">' + ps + '</pre><br>');
 	
 	var ns = s.replace(/\r/g, ' ');
 	ns = ns.replace(/\n/g, ' ');
 	
-	window.nial_input = ns;
-	
-	alert(window.nial_input);
+	window.nial_input = ns;	
+
     }
     
     </script>
     
 
-  <!-- Invocation of Nial via WebASM -->
-  
-  <script type="text/javascript" src="nialcore.js"></script>
 
+  <script type="text/javascript" src="nialcore.js"></script>
 
   
     

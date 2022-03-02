@@ -19,7 +19,7 @@ option(USE_FASTMATH "Utilise compiler options to speed up maths" ON)
 include("NialPackages.txt" OPTIONAL)
 
 
-set (OPTFLAGS "-O2")
+set (OPTFLAGS "-O3")
 if (USE_FASTMATH)
   set (OPTFLAGS "${OPTFLAGS} -ffast-math")
 endif (USE_FASTMATH)
@@ -92,7 +92,8 @@ set (NIAL_SRCS absmach.c
 
 # Linux specific settings
 if (CMAKE_SYSTEM_NAME MATCHES "Emscripten")
-	set (NIAL_LIBS m)
+  set (NIAL_LIBS m)
+  SET(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -s ASYNCIFY")
 endif (CMAKE_SYSTEM_NAME MATCHES "Emscripten")
 
 # Linux specific settings

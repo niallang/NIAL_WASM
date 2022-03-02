@@ -2015,16 +2015,24 @@ rl_gets(char *promptstr, char *inputline) {
 #ifdef EMSCRIPTEN
   char *nem_input = NULL;
   int i;
-  
-  nem_input = (char *)EM_ASM_INT({
-      var evs = prompt(' '.repeat(64));
-      var evslen = lengthBytesUTF8(evs)+1;
 
-      var wasmStr = _malloc(evslen);
-      stringToUTF8(evs, wasmStr, evslen);
+  while (nem_input == NULL) {
+    /* Sleep and relinquish control to the event loop */
+    
+    emscripten_sleep(500);
+    
+    nem_input = (char *)EM_ASM_INT({
+	var evs = window.nial_input;
+	var evslen = lengthBytesUTF8(evs)+1;
 
-      return wasmStr;
-    });
+	var wasmStr = _malloc(evslen);
+	stringToUTF8(evs, wasmStr, evslen);
+
+	window.nial_input = "";
+
+	return wasmStr;
+      });
+  }
   
   for (i = 0; i < INPUTSIZELIMIT-2; i++) {
     int ch = nem_input[i];
@@ -2036,8 +2044,8 @@ rl_gets(char *promptstr, char *inputline) {
 
   free(nem_input);
 
-  fprintf(stdout, "\n    %s\n\n", inputline);
-  fflush(stdout);
+  /* fprintf(stdout, "\n    %s\n\n", inputline); */
+  /* fflush(stdout); */
   
 #else
   int i;
