@@ -35,8 +35,11 @@
 
 	$("#gets_buffer").val('');
 	
-	//var ps = s.replace(/\n/g, "<br/>   ");
-	$("#output").append('<br><pre class="nialin">' + s + '</pre>');
+	const sa = s.split("\n");
+	$("#output").append('<pre> </pre>');
+	for (const elt of sa) {
+	    $("#output").append('<pre class="nialin">' + elt + '</pre>');
+	}
 	
 	var ns = s.replace(/\r/g, ' ');
 	ns = ns.replace(/\n/g, ' ');
