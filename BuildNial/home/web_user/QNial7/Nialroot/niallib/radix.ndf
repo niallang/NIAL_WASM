@@ -1,0 +1,61 @@
+# ---------------- radix integers ----------------------
+#
+# Functions to convert radix strings to integers and
+# vice-versa. This covers octal, hex, binary.
+# Base can be up to 36.
+#
+# An APL style decode is also here, with any base.
+
+library "foldl;
+
+ 
+_radixChars := '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+
+# String to int
+
+_radix is op base str {
+  codes := str eachleft find (base take _radixChars);
+  if or (base match codes) then
+    ??invalid_chars
+  else
+    0 foldl (op x y (x*base+y)) codes
+  end
+}
+
+# APL style decode
+
+decode is op base num {
+  if and[tally base ~= tally num,tally base ~= 1,tally num ~= 1] then
+    ??length
+  else
+    if tally base < tally num then base := tally num reshape base end;
+    base := reverse accumulate * reverse (1 drop base link 1);
+    + (num * base)
+  end
+}
+
+# int to string
+
+_inradix is op base num {
+  res := '';
+  repeat
+    num c := num [quotient,mod] base;
+    res := (c pick _radixChars) hitch res;
+  until
+    num = 0
+  endrepeat;
+  res
+}
+
+# Common usages
+  
+_hex    is (16 _radix);
+_octal  is (8 _radix);
+_binary is (2 _radix);
+
+# Inverses of above
+
+_hexstr is (16 _inradix);
+_octstr is (8 _inradix);
+_binstr is (2 _inradix);
+

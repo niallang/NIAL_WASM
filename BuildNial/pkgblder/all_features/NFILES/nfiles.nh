@@ -1,0 +1,7 @@
+NFILES   U mkdir imkdir
+NFILES   U rmdir irmdir
+NFILES   U rename irename
+NFILES   U fullpathname ifullpathname
+NFILES   U dirlist idirlist
+NFILES   U rmfile iremove
+

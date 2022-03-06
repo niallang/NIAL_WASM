@@ -1,0 +1,7 @@
+# Left to right versions of reduce
+
+foldl is transformer fn op x y {
+  for i with y do x := x fn i endfor
+}
+
+

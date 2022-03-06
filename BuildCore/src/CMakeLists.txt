@@ -93,7 +93,7 @@ set (NIAL_SRCS absmach.c
 # Linux specific settings
 if (CMAKE_SYSTEM_NAME MATCHES "Emscripten")
   set (NIAL_LIBS m)
-  SET(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -s ASYNCIFY")
+  SET(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -s ASYNCIFY -s TOTAL_MEMORY=512MB -s ALLOW_MEMORY_GROWTH=1")
 endif (CMAKE_SYSTEM_NAME MATCHES "Emscripten")
 
 # Linux specific settings

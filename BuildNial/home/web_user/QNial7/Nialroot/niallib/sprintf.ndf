@@ -1,0 +1,110 @@
+
+# -------------------------------------------------
+# Simple string formating utilities
+# using C style string escapes and string insertion
+# from a supplied array using escapes /0../9
+# -------------------------------------------------
+
+library "foldl;
+library "unicode;
+library "radix;
+
+# Forward declarations
+
+sprintf_insert      is external op;
+sprintf_subst       is external op;
+sprintf_unicode     is external op;
+
+_crlf := char 13 10;
+
+
+# Simple string insert, \i is replaced
+# by the i'th value of the input values vector
+
+sprintf_insert is op pos args {
+  s vals := args;
+  s := 1 drop s;
+  if pos < tally vals then
+    expn := pos pick vals;
+    pic := rows picture expn;
+    if 1 = tally pic then
+      (first pic) link s
+    else
+      '' left_reduce (op x y (link x _crlf y))  (pic append s)
+    end
+  else
+    ?index_error
+  end  
+}
+
+
+# Substitute chars on a string using backslash escapes
+
+sprintf_subst is op ch args {
+  s vals := args;
+  ch hitch (1 drop s)
+}
+
+  
+# Handle C style unicode sequences in a string
+
+sprintf_unicode is op n args {
+  s vals := args;
+  write s;
+  link [utf8 _hex (n take), n drop] (1 drop s)
+}
+
+# List of \ chars and their associated functions
+
+sprintf_basics := [`0,`1,`2,`3,`4,`5,`6,`7,`8,`9, `u, `U, `n, `r, `t];
+sprintf_trans := [!(0 sprintf_insert),
+                !(1 sprintf_insert),
+                !(2 sprintf_insert),
+                !(3 sprintf_insert),
+                !(4 sprintf_insert),
+                !(5 sprintf_insert),
+                !(6 sprintf_insert),
+                !(7 sprintf_insert),
+                !(8 sprintf_insert),
+                !(9 sprintf_insert),
+                !(4 sprintf_unicode),
+                !(8 sprintf_unicode),
+                !((char 10) sprintf_subst),
+                !((char 13) sprintf_subst),
+                !((char 8) sprintf_subst),
+                !pass];
+
+
+sprintf_element is op elt vals {
+  if (1 >= tally elt) or (`\ ~= first elt) then
+    elt
+  else
+    fn := ((second elt) find sprintf_basics) pick sprintf_trans;
+    fn apply [(1 drop elt), vals]
+  end
+}
+  
+
+
+# Basic string char substitution and string interpolation
+# top level. This splits the string into a series of substrings
+# which begin with \ excepting, possibly, the first string.
+ 
+sprintf is op args {
+  % Check input arguments for presence of values;
+  if (2 = tally args) and (not isstring args) then
+    s vals := args;
+  else
+    s := args;
+    vals := [];
+  endif;
+  % split the format string into slices and process;
+  cmask := o left_accumulate (and [not first, second]) (`\ match s);
+  sv := (cmask cutall s);
+  sv := (each (0 < tally) sv) sublist sv;
+  link (sv eachleft sprintf_element vals)
+}
+
+
+
+
