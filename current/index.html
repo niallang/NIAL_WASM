@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <title>EM Test JQuery</title>
     <link rel="stylesheet" href="nial.css">
-    <script type="text/javascript" src="https://code.jquery.com/jquery-latest.js"></script>
+    <script type="text/javascript" src="http://code.jquery.com/jquery-latest.js"></script>
 </head>
 <body>
 
@@ -16,20 +16,28 @@
   </div>
 
   <hr/>
-  <div id="output" name="output" class="nialout">
-    <h2>Nial Output Buffer</h2><br/> 		
-  </div>
+  <h2>Nial Output Buffer</h2><br/> 
+  <div id="output" name="output" class="nialout"></div>
 
 
   <script>
     window.nial_input = '';
     
     var Module = {
+
+	//wasmMemory: new WebAssembly.Memory({initial: 1024, maximum: 16384}),
+
+	arguments: ["-i"],
 	
 	print: s => {
 	    $("#output").append('<pre class="nialout">' + s +'</pre>');
-	}
+	},
+
+	printErr: s => {
+	    $("#output").append('<pre class="nialerr">' + s +'</pre>');
+	}   
     }
+    
 
     function execnial() {
 	var s = $("#gets_buffer").val();
@@ -46,14 +54,22 @@
 	ns = ns.replace(/\n/g, ' ');
 	
 	window.nial_input = ns;	
-
     }
+
+    
+    $("#gets_buffer").keyup(ev => {
+	if (ev.ctrlKey) {
+	    if (ev.key == "a") {
+		execnial();
+	    }
+	}
+    });
     
     </script>
     
 
 
-  <script type="text/javascript" src="./nialcore.js"></script>
+  <script type="text/javascript" src="nial.js"></script>
 
   
     

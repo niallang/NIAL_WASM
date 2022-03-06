@@ -19,7 +19,193 @@ var Module = typeof Module !== 'undefined' ? Module : {};
 
 // --pre-jses are emitted after the Module integration code, so that they can
 // refer to Module (if they choose; they can also define Module)
-// {{PRE_JSES}}
+
+  if (!Module.expectedDataFileDownloads) {
+    Module.expectedDataFileDownloads = 0;
+  }
+
+  Module.expectedDataFileDownloads++;
+  (function() {
+    // When running as a pthread, FS operations are proxied to the main thread, so we don't need to
+    // fetch the .data bundle on the worker
+    if (Module['ENVIRONMENT_IS_PTHREAD']) return;
+    var loadPackage = function(metadata) {
+
+      var PACKAGE_PATH = '';
+      if (typeof window === 'object') {
+        PACKAGE_PATH = window['encodeURIComponent'](window.location.pathname.toString().substring(0, window.location.pathname.toString().lastIndexOf('/')) + '/');
+      } else if (typeof process === 'undefined' && typeof location !== 'undefined') {
+        // web worker
+        PACKAGE_PATH = encodeURIComponent(location.pathname.toString().substring(0, location.pathname.toString().lastIndexOf('/')) + '/');
+      }
+      var PACKAGE_NAME = 'nial.data';
+      var REMOTE_PACKAGE_BASE = 'nial.data';
+      if (typeof Module['locateFilePackage'] === 'function' && !Module['locateFile']) {
+        Module['locateFile'] = Module['locateFilePackage'];
+        err('warning: you defined Module.locateFilePackage, that has been renamed to Module.locateFile (using your locateFilePackage for now)');
+      }
+      var REMOTE_PACKAGE_NAME = Module['locateFile'] ? Module['locateFile'](REMOTE_PACKAGE_BASE, '') : REMOTE_PACKAGE_BASE;
+
+      var REMOTE_PACKAGE_SIZE = metadata['remote_package_size'];
+      var PACKAGE_UUID = metadata['package_uuid'];
+
+      function fetchRemotePackage(packageName, packageSize, callback, errback) {
+        if (typeof process === 'object' && typeof process.versions === 'object' && typeof process.versions.node === 'string') {
+          require('fs').readFile(packageName, function(err, contents) {
+            if (err) {
+              errback(err);
+            } else {
+              callback(contents.buffer);
+            }
+          });
+          return;
+        }
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', packageName, true);
+        xhr.responseType = 'arraybuffer';
+        xhr.onprogress = function(event) {
+          var url = packageName;
+          var size = packageSize;
+          if (event.total) size = event.total;
+          if (event.loaded) {
+            if (!xhr.addedTotal) {
+              xhr.addedTotal = true;
+              if (!Module.dataFileDownloads) Module.dataFileDownloads = {};
+              Module.dataFileDownloads[url] = {
+                loaded: event.loaded,
+                total: size
+              };
+            } else {
+              Module.dataFileDownloads[url].loaded = event.loaded;
+            }
+            var total = 0;
+            var loaded = 0;
+            var num = 0;
+            for (var download in Module.dataFileDownloads) {
+            var data = Module.dataFileDownloads[download];
+              total += data.total;
+              loaded += data.loaded;
+              num++;
+            }
+            total = Math.ceil(total * Module.expectedDataFileDownloads/num);
+            if (Module['setStatus']) Module['setStatus']('Downloading data... (' + loaded + '/' + total + ')');
+          } else if (!Module.dataFileDownloads) {
+            if (Module['setStatus']) Module['setStatus']('Downloading data...');
+          }
+        };
+        xhr.onerror = function(event) {
+          throw new Error("NetworkError for: " + packageName);
+        }
+        xhr.onload = function(event) {
+          if (xhr.status == 200 || xhr.status == 304 || xhr.status == 206 || (xhr.status == 0 && xhr.response)) { // file URLs can return 0
+            var packageData = xhr.response;
+            callback(packageData);
+          } else {
+            throw new Error(xhr.statusText + " : " + xhr.responseURL);
+          }
+        };
+        xhr.send(null);
+      };
+
+      function handleError(error) {
+        console.error('package error:', error);
+      };
+
+      var fetchedCallback = null;
+      var fetched = Module['getPreloadedPackage'] ? Module['getPreloadedPackage'](REMOTE_PACKAGE_NAME, REMOTE_PACKAGE_SIZE) : null;
+
+      if (!fetched) fetchRemotePackage(REMOTE_PACKAGE_NAME, REMOTE_PACKAGE_SIZE, function(data) {
+        if (fetchedCallback) {
+          fetchedCallback(data);
+          fetchedCallback = null;
+        } else {
+          fetched = data;
+        }
+      }, handleError);
+
+    function runWithFS() {
+
+      function assert(check, msg) {
+        if (!check) throw msg + new Error().stack;
+      }
+Module['FS_createPath']("/", "home", true, true);
+Module['FS_createPath']("/home", "web_user", true, true);
+Module['FS_createPath']("/home/web_user", "QNial7", true, true);
+Module['FS_createPath']("/home/web_user/QNial7", "Nialroot", true, true);
+Module['FS_createPath']("/home/web_user/QNial7/Nialroot", "tutorial", true, true);
+Module['FS_createPath']("/home/web_user/QNial7/Nialroot", "niallib", true, true);
+
+      /** @constructor */
+      function DataRequest(start, end, audio) {
+        this.start = start;
+        this.end = end;
+        this.audio = audio;
+      }
+      DataRequest.prototype = {
+        requests: {},
+        open: function(mode, name) {
+          this.name = name;
+          this.requests[name] = this;
+          Module['addRunDependency']('fp ' + this.name);
+        },
+        send: function() {},
+        onload: function() {
+          var byteArray = this.byteArray.subarray(this.start, this.end);
+          this.finish(byteArray);
+        },
+        finish: function(byteArray) {
+          var that = this;
+          // canOwn this data in the filesystem, it is a slide into the heap that will never change
+          Module['FS_createDataFile'](this.name, null, byteArray, true, true, true);
+          Module['removeRunDependency']('fp ' + that.name);
+          this.requests[this.name] = null;
+        }
+      };
+
+      var files = metadata['files'];
+      for (var i = 0; i < files.length; ++i) {
+        new DataRequest(files[i]['start'], files[i]['end'], files[i]['audio'] || 0).open('GET', files[i]['filename']);
+      }
+
+      function processPackageData(arrayBuffer) {
+        assert(arrayBuffer, 'Loading data file failed.');
+        assert(arrayBuffer instanceof ArrayBuffer, 'bad input to processPackageData');
+        var byteArray = new Uint8Array(arrayBuffer);
+        var curr;
+        // Reuse the bytearray from the XHR as the source for file reads.
+          DataRequest.prototype.byteArray = byteArray;
+          var files = metadata['files'];
+          for (var i = 0; i < files.length; ++i) {
+            DataRequest.prototype.requests[files[i].filename].onload();
+          }          Module['removeRunDependency']('datafile_nial.data');
+
+      };
+      Module['addRunDependency']('datafile_nial.data');
+
+      if (!Module.preloadResults) Module.preloadResults = {};
+
+      Module.preloadResults[PACKAGE_NAME] = {fromCache: false};
+      if (fetched) {
+        processPackageData(fetched);
+        fetched = null;
+      } else {
+        fetchedCallback = processPackageData;
+      }
+
+    }
+    if (Module['calledRun']) {
+      runWithFS();
+    } else {
+      if (!Module['preRun']) Module['preRun'] = [];
+      Module["preRun"].push(runWithFS); // FS is not initialized yet, wait for it
+    }
+
+    }
+    loadPackage({"files": [{"filename": "/home/web_user/QNial7/Nialroot/tutorial/data.dat", "start": 0, "end": 5360}, {"filename": "/home/web_user/QNial7/Nialroot/tutorial/arith.dat", "start": 5360, "end": 10029}, {"filename": "/home/web_user/QNial7/Nialroot/tutorial/textfile", "start": 10029, "end": 10153}, {"filename": "/home/web_user/QNial7/Nialroot/tutorial/start.doc", "start": 10153, "end": 16252}, {"filename": "/home/web_user/QNial7/Nialroot/tutorial/apl.dat", "start": 16252, "end": 20627}, {"filename": "/home/web_user/QNial7/Nialroot/tutorial/system.dat", "start": 20627, "end": 22219}, {"filename": "/home/web_user/QNial7/Nialroot/tutorial/set.dat", "start": 22219, "end": 27784}, {"filename": "/home/web_user/QNial7/Nialroot/tutorial/lisp.dat", "start": 27784, "end": 29541}, {"filename": "/home/web_user/QNial7/Nialroot/tutorial/test.dat", "start": 29541, "end": 29830}, {"filename": "/home/web_user/QNial7/Nialroot/tutorial/syntax.dat", "start": 29830, "end": 36816}, {"filename": "/home/web_user/QNial7/Nialroot/tutorial/file.dat", "start": 36816, "end": 41451}, {"filename": "/home/web_user/QNial7/Nialroot/tutorial/intro.dat", "start": 41451, "end": 56225}, {"filename": "/home/web_user/QNial7/Nialroot/tutorial/moretext", "start": 56225, "end": 56398}, {"filename": "/home/web_user/QNial7/Nialroot/tutorial/ai.dat", "start": 56398, "end": 59810}, {"filename": "/home/web_user/QNial7/Nialroot/tutorial/control.dat", "start": 59810, "end": 64097}, {"filename": "/home/web_user/QNial7/Nialroot/tutorial/ops.dat", "start": 64097, "end": 67003}, {"filename": "/home/web_user/QNial7/Nialroot/tutorial/pervasive.dat", "start": 67003, "end": 72983}, {"filename": "/home/web_user/QNial7/Nialroot/niallib/cuttext.ndf", "start": 72983, "end": 73939}, {"filename": "/home/web_user/QNial7/Nialroot/niallib/backtracker.ndf", "start": 73939, "end": 82820}, {"filename": "/home/web_user/QNial7/Nialroot/niallib/scanl.ndf", "start": 82820, "end": 82947}, {"filename": "/home/web_user/QNial7/Nialroot/niallib/sprintf.ndf", "start": 82947, "end": 85633}, {"filename": "/home/web_user/QNial7/Nialroot/niallib/between.ndf", "start": 85633, "end": 86083}, {"filename": "/home/web_user/QNial7/Nialroot/niallib/foldl.ndf", "start": 86083, "end": 86193}, {"filename": "/home/web_user/QNial7/Nialroot/niallib/finddefs.ndf", "start": 86193, "end": 87342}, {"filename": "/home/web_user/QNial7/Nialroot/niallib/simpledb.ndf", "start": 87342, "end": 90958}, {"filename": "/home/web_user/QNial7/Nialroot/niallib/htmltools.ndf", "start": 90958, "end": 93555}, {"filename": "/home/web_user/QNial7/Nialroot/niallib/utils.ndf", "start": 93555, "end": 99040}, {"filename": "/home/web_user/QNial7/Nialroot/niallib/border.ndf", "start": 99040, "end": 99502}, {"filename": "/home/web_user/QNial7/Nialroot/niallib/findpath.ndf", "start": 99502, "end": 100721}, {"filename": "/home/web_user/QNial7/Nialroot/niallib/centertext.ndf", "start": 100721, "end": 101114}, {"filename": "/home/web_user/QNial7/Nialroot/niallib/gcd.ndf", "start": 101114, "end": 101569}, {"filename": "/home/web_user/QNial7/Nialroot/niallib/intersect.ndf", "start": 101569, "end": 101868}, {"filename": "/home/web_user/QNial7/Nialroot/niallib/median.ndf", "start": 101868, "end": 102097}, {"filename": "/home/web_user/QNial7/Nialroot/niallib/btdiffs", "start": 102097, "end": 102265}, {"filename": "/home/web_user/QNial7/Nialroot/niallib/teach.ndf~", "start": 102265, "end": 110174}, {"filename": "/home/web_user/QNial7/Nialroot/niallib/filelist.ndf", "start": 110174, "end": 111269}, {"filename": "/home/web_user/QNial7/Nialroot/niallib/insert.ndf", "start": 111269, "end": 112742}, {"filename": "/home/web_user/QNial7/Nialroot/niallib/fuzzyeq.ndf", "start": 112742, "end": 113645}, {"filename": "/home/web_user/QNial7/Nialroot/niallib/defs.ndf", "start": 113645, "end": 130495}, {"filename": "/home/web_user/QNial7/Nialroot/niallib/replace.ndf", "start": 130495, "end": 130948}, {"filename": "/home/web_user/QNial7/Nialroot/niallib/findby.ndf", "start": 130948, "end": 131269}, {"filename": "/home/web_user/QNial7/Nialroot/niallib/tostring.ndf", "start": 131269, "end": 131631}, {"filename": "/home/web_user/QNial7/Nialroot/niallib/round.ndf", "start": 131631, "end": 131871}, {"filename": "/home/web_user/QNial7/Nialroot/niallib/unicode.ndf", "start": 131871, "end": 133679}, {"filename": "/home/web_user/QNial7/Nialroot/niallib/labeltable.ndf", "start": 133679, "end": 135003}, {"filename": "/home/web_user/QNial7/Nialroot/niallib/dropfront.ndf", "start": 135003, "end": 135785}, {"filename": "/home/web_user/QNial7/Nialroot/niallib/diffs.ndf", "start": 135785, "end": 136008}, {"filename": "/home/web_user/QNial7/Nialroot/niallib/money.ndf", "start": 136008, "end": 137486}, {"filename": "/home/web_user/QNial7/Nialroot/niallib/reflect.ndf", "start": 137486, "end": 137739}, {"filename": "/home/web_user/QNial7/Nialroot/niallib/average.ndf", "start": 137739, "end": 137941}, {"filename": "/home/web_user/QNial7/Nialroot/niallib/reverse_polish.ndf", "start": 137941, "end": 139706}, {"filename": "/home/web_user/QNial7/Nialroot/niallib/select.ndf", "start": 139706, "end": 140011}, {"filename": "/home/web_user/QNial7/Nialroot/niallib/frequency.ndf", "start": 140011, "end": 140306}, {"filename": "/home/web_user/QNial7/Nialroot/niallib/romberg.ndf", "start": 140306, "end": 142104}, {"filename": "/home/web_user/QNial7/Nialroot/niallib/findstring.ndf", "start": 142104, "end": 142955}, {"filename": "/home/web_user/QNial7/Nialroot/niallib/unitarray.ndf", "start": 142955, "end": 143475}, {"filename": "/home/web_user/QNial7/Nialroot/niallib/simpson.ndf", "start": 143475, "end": 144706}, {"filename": "/home/web_user/QNial7/Nialroot/niallib/xref.ndf", "start": 144706, "end": 149349}, {"filename": "/home/web_user/QNial7/Nialroot/niallib/solve.ndf", "start": 149349, "end": 151082}, {"filename": "/home/web_user/QNial7/Nialroot/niallib/radix.ndf", "start": 151082, "end": 152266}, {"filename": "/home/web_user/QNial7/Nialroot/niallib/deleteby.ndf", "start": 152266, "end": 153171}, {"filename": "/home/web_user/QNial7/Nialroot/niallib/moving_average.ndf", "start": 153171, "end": 153599}, {"filename": "/home/web_user/QNial7/Nialroot/niallib/shiftpad.ndf", "start": 153599, "end": 154288}, {"filename": "/home/web_user/QNial7/Nialroot/niallib/add&count.ndf", "start": 154288, "end": 155348}, {"filename": "/home/web_user/QNial7/Nialroot/niallib/wsdump.ndf", "start": 155348, "end": 157790}, {"filename": "/home/web_user/QNial7/Nialroot/niallib/eigen.ndf", "start": 157790, "end": 170243}, {"filename": "/home/web_user/QNial7/Nialroot/niallib/stripblanks.ndf", "start": 170243, "end": 170665}, {"filename": "/home/web_user/QNial7/Nialroot/niallib/benchmark.ndf", "start": 170665, "end": 174422}, {"filename": "/home/web_user/QNial7/Nialroot/niallib/count_all.ndf", "start": 174422, "end": 174809}, {"filename": "/home/web_user/QNial7/Nialroot/niallib/dropindex.ndf", "start": 174809, "end": 175224}, {"filename": "/home/web_user/QNial7/Nialroot/niallib/towords.ndf", "start": 175224, "end": 175713}, {"filename": "/home/web_user/QNial7/Nialroot/niallib/teach.ndf", "start": 175713, "end": 183484}, {"filename": "/home/web_user/QNial7/Nialroot/niallib/diagonal.ndf", "start": 183484, "end": 183871}, {"filename": "/home/web_user/QNial7/Nialroot/niallib/newhost.ndf", "start": 183871, "end": 184775}], "remote_package_size": 184775, "package_uuid": "566131ce-e625-4df2-91ec-9100064aa585"});
+
+  })();
+
+
 
 // Sometimes an existing Module object exists with properties
 // meant to overwrite the default module functionality. Here
@@ -1294,7 +1480,7 @@ function isFileURI(filename) {
 
 // end include: URIUtils.js
 var wasmBinaryFile;
-  wasmBinaryFile = 'nialcore.wasm';
+  wasmBinaryFile = 'nial.wasm';
   if (!isDataURI(wasmBinaryFile)) {
     wasmBinaryFile = locateFile(wasmBinaryFile);
   }
@@ -1455,7 +1641,8 @@ var tempI64;
 // === Body ===
 
 var ASM_CONSTS = {
-  35016: function() {var evs = window.nial_input; var evslen = lengthBytesUTF8(evs)+1; var wasmStr = _malloc(evslen); stringToUTF8(evs, wasmStr, evslen); window.nial_input = ""; return wasmStr;}
+  68336: function() {var evs = window.prompt("Enter Input", ""); var evslen = lengthBytesUTF8(evs)+1; var wasmStr = _malloc(evslen); stringToUTF8(evs, wasmStr, evslen); return wasmStr;},  
+ 68504: function() {var evs = window.nial_input; var evslen = lengthBytesUTF8(evs)+1; var wasmStr = _malloc(evslen); stringToUTF8(evs, wasmStr, evslen); window.nial_input = ""; return wasmStr;}
 };
 
 
@@ -2064,13 +2251,6 @@ var ASM_CONSTS = {
           }
           return size;
         },write:function(stream, buffer, offset, length, position, canOwn) {
-          // If the buffer is located in main memory (HEAP), and if
-          // memory can grow, we can't hold on to references of the
-          // memory buffer, as they may get invalidated. That means we
-          // need to do copy its contents.
-          if (buffer.buffer === HEAP8.buffer) {
-            canOwn = false;
-          }
   
           if (!length) return 0;
           var node = stream.node;
@@ -3924,6 +4104,72 @@ var ASM_CONSTS = {
   }
   }
 
+  function ___syscall_getcwd(buf, size) {
+  try {
+  
+      if (size === 0) return -28;
+      var cwd = FS.cwd();
+      var cwdLengthInBytes = lengthBytesUTF8(cwd);
+      if (size < cwdLengthInBytes + 1) return -68;
+      stringToUTF8(cwd, buf, size);
+      return buf;
+    } catch (e) {
+    if (typeof FS === 'undefined' || !(e instanceof FS.ErrnoError)) throw e;
+    return -e.errno;
+  }
+  }
+
+  function ___syscall_getdents64(fd, dirp, count) {
+  try {
+  
+      var stream = SYSCALLS.getStreamFromFD(fd)
+      if (!stream.getdents) {
+        stream.getdents = FS.readdir(stream.path);
+      }
+  
+      var struct_size = 280;
+      var pos = 0;
+      var off = FS.llseek(stream, 0, 1);
+  
+      var idx = Math.floor(off / struct_size);
+  
+      while (idx < stream.getdents.length && pos + struct_size <= count) {
+        var id;
+        var type;
+        var name = stream.getdents[idx];
+        if (name === '.') {
+          id = stream.node.id;
+          type = 4; // DT_DIR
+        }
+        else if (name === '..') {
+          var lookup = FS.lookupPath(stream.path, { parent: true });
+          id = lookup.node.id;
+          type = 4; // DT_DIR
+        }
+        else {
+          var child = FS.lookupNode(stream.node, name);
+          id = child.id;
+          type = FS.isChrdev(child.mode) ? 2 :  // DT_CHR, character device.
+                 FS.isDir(child.mode) ? 4 :     // DT_DIR, directory.
+                 FS.isLink(child.mode) ? 10 :   // DT_LNK, symbolic link.
+                 8;                             // DT_REG, regular file.
+        }
+        (tempI64 = [id>>>0,(tempDouble=id,(+(Math.abs(tempDouble))) >= 1.0 ? (tempDouble > 0.0 ? ((Math.min((+(Math.floor((tempDouble)/4294967296.0))), 4294967295.0))|0)>>>0 : (~~((+(Math.ceil((tempDouble - +(((~~(tempDouble)))>>>0))/4294967296.0)))))>>>0) : 0)],HEAP32[((dirp + pos)>>2)] = tempI64[0],HEAP32[(((dirp + pos)+(4))>>2)] = tempI64[1]);
+        (tempI64 = [(idx + 1) * struct_size>>>0,(tempDouble=(idx + 1) * struct_size,(+(Math.abs(tempDouble))) >= 1.0 ? (tempDouble > 0.0 ? ((Math.min((+(Math.floor((tempDouble)/4294967296.0))), 4294967295.0))|0)>>>0 : (~~((+(Math.ceil((tempDouble - +(((~~(tempDouble)))>>>0))/4294967296.0)))))>>>0) : 0)],HEAP32[(((dirp + pos)+(8))>>2)] = tempI64[0],HEAP32[(((dirp + pos)+(12))>>2)] = tempI64[1]);
+        HEAP16[(((dirp + pos)+(16))>>1)] = 280;
+        HEAP8[(((dirp + pos)+(18))>>0)] = type;
+        stringToUTF8(name, dirp + pos + 19, 256);
+        pos += struct_size;
+        idx += 1;
+      }
+      FS.llseek(stream, idx * struct_size, 0);
+      return pos;
+    } catch (e) {
+    if (typeof FS === 'undefined' || !(e instanceof FS.ErrnoError)) throw e;
+    return -e.errno;
+  }
+  }
+
   function ___syscall_ioctl(fd, op, varargs) {
   SYSCALLS.varargs = varargs;
   try {
@@ -3990,6 +4236,17 @@ var ASM_CONSTS = {
   }
   }
 
+  function ___syscall_mkdir(path, mode) {
+  try {
+  
+      path = SYSCALLS.getStr(path);
+      return SYSCALLS.doMkdir(path, mode);
+    } catch (e) {
+    if (typeof FS === 'undefined' || !(e instanceof FS.ErrnoError)) throw e;
+    return -e.errno;
+  }
+  }
+
   function ___syscall_open(path, flags, varargs) {
   SYSCALLS.varargs = varargs;
   try {
@@ -4004,12 +4261,35 @@ var ASM_CONSTS = {
   }
   }
 
+  function ___syscall_readlink(path, buf, bufsize) {
+  try {
+  
+      path = SYSCALLS.getStr(path);
+      return SYSCALLS.doReadlink(path, buf, bufsize);
+    } catch (e) {
+    if (typeof FS === 'undefined' || !(e instanceof FS.ErrnoError)) throw e;
+    return -e.errno;
+  }
+  }
+
   function ___syscall_rename(old_path, new_path) {
   try {
   
       old_path = SYSCALLS.getStr(old_path);
       new_path = SYSCALLS.getStr(new_path);
       FS.rename(old_path, new_path);
+      return 0;
+    } catch (e) {
+    if (typeof FS === 'undefined' || !(e instanceof FS.ErrnoError)) throw e;
+    return -e.errno;
+  }
+  }
+
+  function ___syscall_rmdir(path) {
+  try {
+  
+      path = SYSCALLS.getStr(path);
+      FS.rmdir(path);
       return 0;
     } catch (e) {
     if (typeof FS === 'undefined' || !(e instanceof FS.ErrnoError)) throw e;
@@ -4133,11 +4413,7 @@ var ASM_CONSTS = {
     }
 
   function _emscripten_get_heap_max() {
-      // Stay one Wasm page short of 4GB: while e.g. Chrome is able to allocate
-      // full 4GB Wasm memories, the size will wrap back to 0 bytes in Wasm side
-      // for any code that deals with heap sizes, which would require special
-      // casing all heap size related code to treat 0 specially.
-      return 2147483648;
+      return HEAPU8.length;
     }
 
   var _emscripten_get_now;if (ENVIRONMENT_IS_NODE) {
@@ -4152,64 +4428,13 @@ var ASM_CONSTS = {
       HEAPU8.copyWithin(dest, src, src + num);
     }
 
-  function emscripten_realloc_buffer(size) {
-      try {
-        // round size grow request up to wasm page size (fixed 64KB per spec)
-        wasmMemory.grow((size - buffer.byteLength + 65535) >>> 16); // .grow() takes a delta compared to the previous size
-        updateGlobalBufferAndViews(wasmMemory.buffer);
-        return 1 /*success*/;
-      } catch(e) {
-      }
-      // implicit 0 return to save code size (caller will cast "undefined" into 0
-      // anyhow)
+  function abortOnCannotGrowMemory(requestedSize) {
+      abort('OOM');
     }
   function _emscripten_resize_heap(requestedSize) {
       var oldSize = HEAPU8.length;
       requestedSize = requestedSize >>> 0;
-      // With pthreads, races can happen (another thread might increase the size
-      // in between), so return a failure, and let the caller retry.
-  
-      // Memory resize rules:
-      // 1.  Always increase heap size to at least the requested size, rounded up
-      //     to next page multiple.
-      // 2a. If MEMORY_GROWTH_LINEAR_STEP == -1, excessively resize the heap
-      //     geometrically: increase the heap size according to
-      //     MEMORY_GROWTH_GEOMETRIC_STEP factor (default +20%), At most
-      //     overreserve by MEMORY_GROWTH_GEOMETRIC_CAP bytes (default 96MB).
-      // 2b. If MEMORY_GROWTH_LINEAR_STEP != -1, excessively resize the heap
-      //     linearly: increase the heap size by at least
-      //     MEMORY_GROWTH_LINEAR_STEP bytes.
-      // 3.  Max size for the heap is capped at 2048MB-WASM_PAGE_SIZE, or by
-      //     MAXIMUM_MEMORY, or by ASAN limit, depending on which is smallest
-      // 4.  If we were unable to allocate as much memory, it may be due to
-      //     over-eager decision to excessively reserve due to (3) above.
-      //     Hence if an allocation fails, cut down on the amount of excess
-      //     growth, in an attempt to succeed to perform a smaller allocation.
-  
-      // A limit is set for how much we can grow. We should not exceed that
-      // (the wasm binary specifies it, so if we tried, we'd fail anyhow).
-      var maxHeapSize = _emscripten_get_heap_max();
-      if (requestedSize > maxHeapSize) {
-        return false;
-      }
-  
-      // Loop through potential heap size increases. If we attempt a too eager
-      // reservation that fails, cut down on the attempted size and reserve a
-      // smaller bump instead. (max 3 times, chosen somewhat arbitrarily)
-      for (var cutDown = 1; cutDown <= 4; cutDown *= 2) {
-        var overGrownHeapSize = oldSize * (1 + 0.2 / cutDown); // ensure geometric growth
-        // but limit overreserving (default to capping at +96MB overgrowth at most)
-        overGrownHeapSize = Math.min(overGrownHeapSize, requestedSize + 100663296 );
-  
-        var newSize = Math.min(maxHeapSize, alignUp(Math.max(requestedSize, overGrownHeapSize), 65536));
-  
-        var replacement = emscripten_realloc_buffer(newSize);
-        if (replacement) {
-  
-          return true;
-        }
-      }
-      return false;
+      abortOnCannotGrowMemory(requestedSize);
     }
 
   /** @param {boolean=} synchronous */
@@ -4454,6 +4679,7 @@ var ASM_CONSTS = {
       return ret;
     }
 
+
   function runAndAbortIfError(func) {
       try {
         return func();
@@ -4677,7 +4903,7 @@ var ASM_CONSTS = {
    }
   });
   FS.FSNode = FSNode;
-  FS.staticInit();;
+  FS.staticInit();Module["FS_createPath"] = FS.createPath;Module["FS_createDataFile"] = FS.createDataFile;Module["FS_createPreloadedFile"] = FS.createPreloadedFile;Module["FS_createLazyFile"] = FS.createLazyFile;Module["FS_createDevice"] = FS.createDevice;Module["FS_unlink"] = FS.unlink;;
 var ASSERTIONS = false;
 
 
@@ -4707,16 +4933,93 @@ function intArrayToString(array) {
 }
 
 
+// Copied from https://github.com/strophe/strophejs/blob/e06d027/src/polyfills.js#L149
+
+// This code was written by Tyler Akins and has been placed in the
+// public domain.  It would be nice if you left this header intact.
+// Base64 code from Tyler Akins -- http://rumkin.com
+
+/**
+ * Decodes a base64 string.
+ * @param {string} input The string to decode.
+ */
+var decodeBase64 = typeof atob === 'function' ? atob : function (input) {
+  var keyStr = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';
+
+  var output = '';
+  var chr1, chr2, chr3;
+  var enc1, enc2, enc3, enc4;
+  var i = 0;
+  // remove all characters that are not A-Z, a-z, 0-9, +, /, or =
+  input = input.replace(/[^A-Za-z0-9\+\/\=]/g, '');
+  do {
+    enc1 = keyStr.indexOf(input.charAt(i++));
+    enc2 = keyStr.indexOf(input.charAt(i++));
+    enc3 = keyStr.indexOf(input.charAt(i++));
+    enc4 = keyStr.indexOf(input.charAt(i++));
+
+    chr1 = (enc1 << 2) | (enc2 >> 4);
+    chr2 = ((enc2 & 15) << 4) | (enc3 >> 2);
+    chr3 = ((enc3 & 3) << 6) | enc4;
+
+    output = output + String.fromCharCode(chr1);
+
+    if (enc3 !== 64) {
+      output = output + String.fromCharCode(chr2);
+    }
+    if (enc4 !== 64) {
+      output = output + String.fromCharCode(chr3);
+    }
+  } while (i < input.length);
+  return output;
+};
+
+// Converts a string of base64 into a byte array.
+// Throws error on invalid input.
+function intArrayFromBase64(s) {
+  if (typeof ENVIRONMENT_IS_NODE === 'boolean' && ENVIRONMENT_IS_NODE) {
+    var buf = Buffer.from(s, 'base64');
+    return new Uint8Array(buf['buffer'], buf['byteOffset'], buf['byteLength']);
+  }
+
+  try {
+    var decoded = decodeBase64(s);
+    var bytes = new Uint8Array(decoded.length);
+    for (var i = 0 ; i < decoded.length ; ++i) {
+      bytes[i] = decoded.charCodeAt(i);
+    }
+    return bytes;
+  } catch (_) {
+    throw new Error('Converting base64 string to bytes failed.');
+  }
+}
+
+// If filename is a base64 data URI, parses and returns data (Buffer on node,
+// Uint8Array otherwise). If filename is not a base64 data URI, returns undefined.
+function tryParseAsDataURI(filename) {
+  if (!isDataURI(filename)) {
+    return;
+  }
+
+  return intArrayFromBase64(filename.slice(dataURIPrefix.length));
+}
+
+
 var asmLibraryArg = {
   "__call_sighandler": ___call_sighandler,
   "__syscall_access": ___syscall_access,
   "__syscall_fcntl64": ___syscall_fcntl64,
   "__syscall_fstat64": ___syscall_fstat64,
   "__syscall_fstatat64": ___syscall_fstatat64,
+  "__syscall_getcwd": ___syscall_getcwd,
+  "__syscall_getdents64": ___syscall_getdents64,
   "__syscall_ioctl": ___syscall_ioctl,
   "__syscall_lstat64": ___syscall_lstat64,
+  "__syscall_mkdir": ___syscall_mkdir,
   "__syscall_open": ___syscall_open,
+  "__syscall_readlink": ___syscall_readlink,
   "__syscall_rename": ___syscall_rename,
+  "__syscall_rmdir": ___syscall_rmdir,
   "__syscall_stat64": ___syscall_stat64,
   "__syscall_unlink": ___syscall_unlink,
   "_emscripten_throw_longjmp": __emscripten_throw_longjmp,
@@ -4737,6 +5040,7 @@ var asmLibraryArg = {
   "fd_seek": _fd_seek,
   "fd_write": _fd_write,
   "getTempRet0": _getTempRet0,
+  "invoke_i": invoke_i,
   "invoke_ii": invoke_ii,
   "invoke_iii": invoke_iii,
   "invoke_iiii": invoke_iiii,
@@ -4845,23 +5149,23 @@ var dynCall_ji = Module["dynCall_ji"] = function() {
 };
 
 /** @type {function(...*):?} */
-var dynCall_iii = Module["dynCall_iii"] = function() {
-  return (dynCall_iii = Module["dynCall_iii"] = Module["asm"]["dynCall_iii"]).apply(null, arguments);
-};
-
-/** @type {function(...*):?} */
 var dynCall_ii = Module["dynCall_ii"] = function() {
   return (dynCall_ii = Module["dynCall_ii"] = Module["asm"]["dynCall_ii"]).apply(null, arguments);
 };
 
 /** @type {function(...*):?} */
-var dynCall_vii = Module["dynCall_vii"] = function() {
-  return (dynCall_vii = Module["dynCall_vii"] = Module["asm"]["dynCall_vii"]).apply(null, arguments);
+var dynCall_vi = Module["dynCall_vi"] = function() {
+  return (dynCall_vi = Module["dynCall_vi"] = Module["asm"]["dynCall_vi"]).apply(null, arguments);
 };
 
 /** @type {function(...*):?} */
-var dynCall_vi = Module["dynCall_vi"] = function() {
-  return (dynCall_vi = Module["dynCall_vi"] = Module["asm"]["dynCall_vi"]).apply(null, arguments);
+var dynCall_iii = Module["dynCall_iii"] = function() {
+  return (dynCall_iii = Module["dynCall_iii"] = Module["asm"]["dynCall_iii"]).apply(null, arguments);
+};
+
+/** @type {function(...*):?} */
+var dynCall_vii = Module["dynCall_vii"] = function() {
+  return (dynCall_vii = Module["dynCall_vii"] = Module["asm"]["dynCall_vii"]).apply(null, arguments);
 };
 
 /** @type {function(...*):?} */
@@ -4877,6 +5181,11 @@ var dynCall_iiii = Module["dynCall_iiii"] = function() {
 /** @type {function(...*):?} */
 var dynCall_jjii = Module["dynCall_jjii"] = function() {
   return (dynCall_jjii = Module["dynCall_jjii"] = Module["asm"]["dynCall_jjii"]).apply(null, arguments);
+};
+
+/** @type {function(...*):?} */
+var dynCall_i = Module["dynCall_i"] = function() {
+  return (dynCall_i = Module["dynCall_i"] = Module["asm"]["dynCall_i"]).apply(null, arguments);
 };
 
 /** @type {function(...*):?} */
@@ -4956,17 +5265,6 @@ function invoke_v(index) {
   }
 }
 
-function invoke_iii(index,a1,a2) {
-  var sp = stackSave();
-  try {
-    return dynCall_iii(index,a1,a2);
-  } catch(e) {
-    stackRestore(sp);
-    if (e !== e+0 && e !== 'longjmp') throw e;
-    _setThrew(1, 0);
-  }
-}
-
 function invoke_ii(index,a1) {
   var sp = stackSave();
   try {
@@ -4978,10 +5276,10 @@ function invoke_ii(index,a1) {
   }
 }
 
-function invoke_vii(index,a1,a2) {
+function invoke_vi(index,a1) {
   var sp = stackSave();
   try {
-    dynCall_vii(index,a1,a2);
+    dynCall_vi(index,a1);
   } catch(e) {
     stackRestore(sp);
     if (e !== e+0 && e !== 'longjmp') throw e;
@@ -4989,10 +5287,21 @@ function invoke_vii(index,a1,a2) {
   }
 }
 
-function invoke_vi(index,a1) {
+function invoke_iii(index,a1,a2) {
   var sp = stackSave();
   try {
-    dynCall_vi(index,a1);
+    return dynCall_iii(index,a1,a2);
+  } catch(e) {
+    stackRestore(sp);
+    if (e !== e+0 && e !== 'longjmp') throw e;
+    _setThrew(1, 0);
+  }
+}
+
+function invoke_vii(index,a1,a2) {
+  var sp = stackSave();
+  try {
+    dynCall_vii(index,a1,a2);
   } catch(e) {
     stackRestore(sp);
     if (e !== e+0 && e !== 'longjmp') throw e;
@@ -5015,6 +5324,17 @@ function invoke_iiii(index,a1,a2,a3) {
   var sp = stackSave();
   try {
     return dynCall_iiii(index,a1,a2,a3);
+  } catch(e) {
+    stackRestore(sp);
+    if (e !== e+0 && e !== 'longjmp') throw e;
+    _setThrew(1, 0);
+  }
+}
+
+function invoke_i(index) {
+  var sp = stackSave();
+  try {
+    return dynCall_i(index);
   } catch(e) {
     stackRestore(sp);
     if (e !== e+0 && e !== 'longjmp') throw e;
@@ -5137,7 +5457,14 @@ function invoke_ijjii(index,a1,a2,a3,a4,a5,a6) {
 
 // === Auto-generated postamble setup entry stuff ===
 
-
+Module["addRunDependency"] = addRunDependency;
+Module["removeRunDependency"] = removeRunDependency;
+Module["FS_createPath"] = FS.createPath;
+Module["FS_createDataFile"] = FS.createDataFile;
+Module["FS_createPreloadedFile"] = FS.createPreloadedFile;
+Module["FS_createLazyFile"] = FS.createLazyFile;
+Module["FS_createDevice"] = FS.createDevice;
+Module["FS_unlink"] = FS.unlink;
 
 var calledRun;
 
