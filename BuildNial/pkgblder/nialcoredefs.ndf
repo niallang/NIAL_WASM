@@ -211,6 +211,10 @@ REDUCEROWS IS TRANSFORMER f OPERATION A {
 REDUCECOLS IS TRANSFORMER f OPERATION A {
    [valence A - 2 max 0,axes first A] PARTITION (REDUCE f) A }
 
+# Get the system Name under which we are running
+
+OS_System_Name := os_get_parameter 0;
+
 # Get the file path separator for this operating system
 
 OS_Path_Separator := os_get_parameter 1;

@@ -1977,28 +1977,33 @@ iwrite()
 void
 readinput() {
 #ifdef EMSCRIPTEN
-  char buffer[INPUTSIZELIMIT];
   char *nem_input = NULL;
+  int nial_has_input = 0;
   int i;
 
-  emscripten_sleep(100);
-  nem_input = (char *)EM_ASM_INT({
-      var evs = window.prompt("Enter Input", "");
-      var evslen = lengthBytesUTF8(evs)+1;
-
-      var wasmStr = _malloc(evslen);
-      stringToUTF8(evs, wasmStr, evslen);
-      return wasmStr;
-    });
-
-  for (i = 0; i < INPUTSIZELIMIT-2; i++) {
-    int ch = nem_input[i]&0xFF;
+  do {
+    /* Sleep and relinquish control to the event loop */
     
-    buffer[i] = ch;
-    if (ch == 0)
-      break;
-  }
+    emscripten_sleep(200);
 
+    nial_has_input = EM_ASM_INT({
+	return getNialCount();
+      });
+
+    if (nial_has_input > 0) {
+      nem_input = (char *)EM_ASM_INT({
+	var evs = getNialInput();
+	var evslen = lengthBytesUTF8(evs)+1;
+
+	var wasmStr = _malloc(evslen);
+	stringToUTF8(evs, wasmStr, evslen);
+
+	return wasmStr;
+      });
+    }
+  } while (nial_has_input == 0);
+
+  mkstring(nem_input);
   free(nem_input);
   
 #else
@@ -2022,9 +2027,9 @@ readinput() {
     }
   }
 
+  mkstring(buffer);
 #endif
   
-  mkstring(buffer);
   checksignal (NC_CS_INPUT);
 }
 
@@ -2048,25 +2053,38 @@ rl_gets(char *promptstr, char *inputline)
 
 #ifdef EMSCRIPTEN
   char *nem_input = NULL;
+  int nial_has_input = 0;
   int i;
 
-  while (nem_input == NULL) {
+  if(promptstr != NULL) {
+    EM_ASM({
+	var pmt = UTF8ToString($0);
+	nial_write_prompt(pmt);
+      }, promptstr);
+  }
+
+  do {
     /* Sleep and relinquish control to the event loop */
     
     emscripten_sleep(200);
+
     
-    nem_input = (char *)EM_ASM_INT({
-	var evs = window.nial_input;
+    nial_has_input = EM_ASM_INT({
+	return getNialCount();
+      });
+
+    if (nial_has_input > 0) {
+      nem_input = (char *)EM_ASM_INT({
+	var evs = getNialInput();
 	var evslen = lengthBytesUTF8(evs)+1;
 
 	var wasmStr = _malloc(evslen);
 	stringToUTF8(evs, wasmStr, evslen);
 
-	window.nial_input = "";
-
 	return wasmStr;
       });
-  }
+    }
+  } while (nial_has_input == 0);
   
   for (i = 0; i < INPUTSIZELIMIT-2; i++) {
     int ch = nem_input[i];
@@ -2127,6 +2145,24 @@ iread()
 void
 ireadscreen()
 {
+#ifdef EMSCRIPTEN
+  nialptr x = apop();
+
+  emscripten_sleep(100);
+  
+  if(istext(x)) {
+    EM_ASM({
+	var pmt = UTF8ToString($0);
+	nial_write_prompt(pmt);
+      }, pfirstchar(x));
+    
+    readinput();
+    
+  } else {
+    apush(makefault("?args"));
+  }
+  
+#else
   nialptr     x;
 
   iwritechars();             /* writes the prompt */
@@ -2135,6 +2171,7 @@ ireadscreen()
     readinput();
   else
     apush(x);                /* must be a fault */
+#endif
 }
 
 /* routine to implement operation writescreen */
