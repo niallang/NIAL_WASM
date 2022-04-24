@@ -1,77 +1,289 @@
-<!DOCTYPE html>
-<html>
-<head>
+<!DOCTYPE HTML> 
+<html > 
+  
+  <head>
     <meta charset="UTF-8">
-    <title>EM Test JQuery</title>
-    <link rel="stylesheet" href="nial.css">
+
+    <title>Nial WASM</title>
+
     <script type="text/javascript" src="https://code.jquery.com/jquery-latest.js"></script>
-</head>
-<body>
 
-   <div id="input">
-    <h2>Nial Command Input</h2><br/>
-    <span> Enter a nial command in the following input area then press the Execute button</span><br>
-    <textarea id="gets_buffer" cols="80" rows="6"></textarea><br/>
-    <button onclick="execnial()">Execute</button>
-  </div>
+    <style>
+      h3 {
+	  text-align: center;
+      }
+      
+      #nialterm {
+	  height: 2em;
+          width: 100%;
+          background: mintcream;
+          color: black;
+          text-align:left;
+	  font-family: "Courier New", monospace;
+	  font-size: 9pt;
+	  border-style: groove;
+	  border-width: thin;
+      }
+      
+      #nialin {
+          height: 10em;
+          width: 80em;
+          background: mintcream;
+          color: black;
+          text-align:left;
+	  font-family: "Courier New", monospace;
+	  font-size: 9pt;
+      }
+      
+      #nialout {
+          height: 24em;
+	  width: 100%;
+          background: mintcream;
+          color: black;
+          text-align:left;
+	  font-family: "Courier New", monospace;
+	  font-size: 9pt;
+	    border-style: groove;
+      }
+	
+    </style>
+    
+</head> 
+  
+<body> 
+  
+  <h6>Nial Output</h6>
+  <textarea id = "nialout"></textarea>
+  
+  <h4>Terminal (Press Enter to execute line)</h4>
+  <input type="text" id="nialterm" value="2 3 4 reshape reverse tell 24"><br>
 
-  <hr/>
-  <h2>Nial Output Buffer</h2><br/> 
-  <div id="output" name="output" class="nialout"></div>
+  <h4>Editor (Edit Nial Text, press Ctrl-Enter to execute selection or current line)</h4>
+  <textarea id = "nialin"></textarea>
+  <button onclick="execnial()">Execute Selection</button>
+  <button onclick="clearInput()">Clear Input</button>
+  <button onclick="loadLesson()">Tutorial</button>
+  <button>Examples</button>
+  
+  
+  <!-- Create a simple CodeMirror instance -->
+  <link rel="stylesheet" href="lib/codemirror.css">
+  <script src="lib/codemirror.js"></script>
+  <script src="addon/mode/simple.js"></script>
+  <script src="mode/nial/nial.js"></script>
+  <script>
+    const nialInputArea = document.getElementById("nialin");	
+    var editor = CodeMirror.fromTextArea(nialInputArea, {
+	lineNumbers: true
+    });
+    editor.setSize(null, 200);
 
+    const initialEditorText = ["# Welcome to Codemirror and Nial Examples",
+			       " ",
+			       "# Select a line of number of lines of text and execute them.",
+			       "# Then edit them and try again",
+			       " ",
+			       "% A simple example;",
+			       "1 2 3 cart 4 5 6 7",
+			       " "
+			      ];
+		  
+    // editor.setValue(iniialEditorText.join("\r\n"));
+    editor.setValue(initialEditorText.join("\r\n"));
+  </script>
 
   <script>
     window.nial_input = '';
+
+    // Use a queue to pass input between the web interface and Nial
+    // In this way we can pass empty lines if desired
     
-    var Module = {
-
-	//wasmMemory: new WebAssembly.Memory({initial: 1024, maximum: 16384}),
-
-	arguments: ["-i"],
-	
-	print: s => {
-	    $("#output").append('<pre class="nialout">' + s +'</pre>');
-	},
-
-	printErr: s => {
-	    $("#output").append('<pre class="nialerr">' + s +'</pre>');
-	}   
-    }
-    
-
-    function execnial() {
-	var s = $("#gets_buffer").val();
-
-	$("#gets_buffer").val('');
-	
-	const sa = s.split("\n");
-	$("#output").append('<pre> </pre>');
-	for (const elt of sa) {
-	    $("#output").append('<pre class="nialin">' + elt + '</pre>');
+    class Queue {
+	constructor() {
+	    this.elements = {};
+	    this.head = 0;
+	    this.tail = 0;
 	}
 	
-	var ns = s.replace(/\r/g, ' ');
-	ns = ns.replace(/\n/g, ' ');
+	enqueue(element) {
+	    this.elements[this.tail] = element;
+	    //alert("Enqueued: " + element);
+	    this.tail++;
+	}
 	
-	window.nial_input = ns;	
+	dequeue() {
+	    const item = this.elements[this.head];
+	    delete this.elements[this.head];
+	    this.head++;
+	    //alert("Dequeued: " + item);
+	    return item;
+	}
+
+	get length() {
+	    return (this.tail - this.head);
+	}
+	
+	get isEmpty() {
+	    return this.length === 0;
+	}
     }
 
     
-    $("#gets_buffer").keyup(ev => {
+    let nial_input_queue = new Queue();
+
+    // Scroll to the bottom of the ouput area
+    // to display output more cleanly
+    function scrollToBottom(eltId) {
+        var t = document.getElementById(eltId);
+        t.scrollTop = t.scrollHeight;
+	return;
+    }
+    
+    // Clear the output area for simplicity. This is
+    // equivalent to a clear screen
+    function clearNialOutput() {
+	var t = document.getElementById("nialout");
+	//alert("clear");
+	t.value = "";
+	return;
+    }
+    
+    // Append the output text
+    function appendToOutput(txt) {
+	const out = document.getElementById("nialout");
+
+	out.value += txt;
+	return;
+    }
+
+
+    function nial_write_prompt(txt) {
+	appendToOutput("\r\n" + txt);
+    }
+
+    // Execute either the selected text in the input area or the current
+    // line if no selected text
+    function execnial() {
+	if (editor.somethingSelected()) {
+	    // If we have selected text then execute it
+	    const txt = editor.getSelection();
+
+	    if (txt.length > 0) {
+	
+		var ns = txt.replace(/\r/g, ' ');
+		ns = ns.replace(/\n/g, ' ');
+		appendToOutput("\r\n"+txt+"\r\n\r\n");
+		scrollToBottom("nialout");
+	    
+		nial_input_queue.enqueue(ns);
+	    }
+	} else {
+	    // If nothing is selected, use the current editor line
+	    var line_ch = editor.getCursor();
+	    var lpos = line_ch["line"];
+
+	    const txt = editor.getLine(lpos);
+
+	    if (txt.length > 0) {
+	
+		var ns = txt.replace(/\r/g, ' ');
+		ns = ns.replace(/\n/g, ' ');
+		appendToOutput("\r\n"+txt+"\r\n\r\n");
+		scrollToBottom("nialout");
+	    
+		nial_input_queue.enqueue(ns);
+	    }	    
+	}
+    }
+
+    // Execute the contents of the input terminal element
+    function execnial_term() {
+	const nterm = document.getElementById("nialterm");
+	const ns = nterm.value;
+
+	appendToOutput(ns+"\r\n\r\n");
+	scrollToBottom("nialout");
+	    
+	nial_input_queue.enqueue(ns);
+
+	nterm.value = "";
+    }
+
+    function loadLesson() {
+	const s = "? data,arith,apl,system,set,lisp,test,syntax,file,ai,control,ops,pervasive";
+	const fn = prompt(s);
+	const path = '/home/web_user/QNial7/Nialroot/tutorial/' + fn + '.dat';
+
+	try {
+	    var txt = FS.readFile(path, {"encoding": "utf8"});
+	    editor.setValue(txt);
+	} catch (err) {
+	    alert("Error: " + err.message);
+	}
+    }
+
+    function clearInput() {
+	editor.setValue(" ");
+    }
+
+
+    // Support function to pass input to Nial. This function
+    // exists to allow us to change input methods
+    function getNialInput() {
+	//alert("Get nial input called");
+	if (nial_input_queue.length > 0) {
+	    return nial_input_queue.dequeue();
+	} else {
+	    return "";
+	}
+    }
+
+
+    // Pass back the number of items on the input queue
+    function getNialCount() {
+	return nial_input_queue.length;
+    }
+    
+    
+    var Module = {
+	
+	arguments: ["-i"],
+	
+	print: s => {appendToOutput(s+"\r\n");
+		     scrollToBottom("nialout");
+		    },
+
+	printErr: s => {appendToOutput(s+"\r\n");
+			scrollToBottom("nialout");
+		       }
+    }
+    
+    
+    $("body").keyup(ev => {
+	//alert("keyup " + ev.key);
 	if (ev.ctrlKey) {
-	    if (ev.key == "a") {
+	    if (ev.key == "Enter") {
 		execnial();
+	    }
+	} else if (ev.altKey) {
+	    if (ev.key == 'c') {
+		clearOutput();
 	    }
 	}
     });
     
-    </script>
+    $("#nialterm").keyup(ev => {
+	//alert("keyup " + ev.key);
+	if (ev.key == "Enter") {
+	    execnial_term();
+	}
+    });
     
-
+    </script>
 
   <script type="text/javascript" src="nial.js"></script>
-
-  
     
-</body>
+  
+</body> 
+
 </html>
