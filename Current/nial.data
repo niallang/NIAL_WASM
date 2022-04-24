@@ -3233,9 +3233,8 @@ Demoinfo := [
 (phrase 'File Operations') "file,
 "Quit "quit];
 
-Clrscrn IS { writescreen (15 1 reshape ' '); }
 
-library "towords
+library "towords;
 
 # definitions used by ai.dat
 
@@ -3299,7 +3298,7 @@ remove_assoc IS OPERATION Alist Assoc {
 Start_assoc IS {
       ( phrase '') ( phrase '') }
 
-sortdown IS SORT >=
+sortdown IS SORT >=;
 
 # utility routine
 
@@ -3320,7 +3319,6 @@ fixquotes IS OP Str {
 # routine to process the lesson files one line at a time.
 
 process IS OPERATION __Lines {
-      _clearscreen 0;
       __Done := o ;
       __I := 0;
       WHILE not __Done and (__I < tally __Lines) DO
@@ -3369,15 +3367,16 @@ process IS OPERATION __Lines {
                         END
                      `p :
                         writescreen ' ' ;
-                        R := readscreen 'Press <Enter> to continue, <b> to backup, <n> for nial, <q> to quit: ' ;
+                        R := readscreen
+ 'Press <Enter> to continue, <b> to backup, <n> for nial, <q> to quit: ' ;
                         IF first R in 'qQ' THEN
                            __Done := l ;
                         ELSEIF first R in 'nN' THEN
                              Writescreen null;
-                            % Writescreen 'Enter some NIAL code and press enter';
-                            % Writescreen '(Press Enter with no text to continue)';
+                             Writescreen 'Enter some NIAL code and press enter';
+                             Writescreen '(Press Enter with no text to continue)';
                              REPEAT 
-                               code := 'Enter some NIAL code and press enter';
+                               code := Readscreen '    >';
                                IF not empty code THEN
                                  res := execute code;
                                  writescreen picture res;
@@ -3401,7 +3400,6 @@ process IS OPERATION __Lines {
                               ENDWHILE;
                            ENDIF;
                         ENDIF ;
-                        _clearscreen 0;
                         END
                      `q :
                         __Done := l ;
@@ -3421,12 +3419,12 @@ Teach IS {
       Again := l ;
       Mode := set "sketch ;
       WHILE Again DO
-         write '** Again';
          set "sketch ;
          set "nodecor ;
-         _clearscreen 0;
          EACH write ['Q''Nial EXAMPLES', ' ', ( mix Demoinfo ), ' '] ;
-         Filename := phrase tolower readscreen 'ENTER the name of the desired demonstration and press <RETURN> : ' ;
+         Filename := phrase tolower readscreen
+ 'ENTER the name of the desired demonstration and press <RETURN> : ' ;
+         write link ['You entered: ', string Filename];
          IF ( Filename in "quit "q "QUIT "Q ) THEN
             Again := o ;
          ELSEIF Filename in EACH second Demoinfo THEN
