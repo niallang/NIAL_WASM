@@ -55,14 +55,14 @@
   <h6>Nial Output</h6>
   <textarea id = "nialout"></textarea>
   
-  <h4>Terminal (Press Enter to execute line)</h4>
+  <h6>Terminal Input (Press Enter to execute line)</h6>
   <input type="text" id="nialterm" value="2 3 4 reshape reverse tell 24"><br>
 
-  <h4>Editor (Edit Nial Text, press Ctrl-Enter to execute selection or current line)</h4>
+  <h6>Editor Input (Edit Nial Text, press Ctrl-Enter to execute selection or current line)</h6>
   <textarea id = "nialin"></textarea>
   <button onclick="execnial()">Execute Selection</button>
-  <button onclick="clearInput()">Clear Input</button>
-  <button onclick="loadLesson()">Tutorial</button>
+  <button onclick="clearInput()">Clear Editor</button>
+  <button onclick="clearNialOutput()">Clear Output</button>
   <button>Examples</button>
   
   
@@ -147,12 +147,14 @@
 	t.value = "";
 	return;
     }
+
     
     // Append the output text
     function appendToOutput(txt) {
 	const out = document.getElementById("nialout");
 
 	out.value += txt;
+	scrollToBottom("nialout");
 	return;
     }
 
@@ -249,13 +251,9 @@
 	
 	arguments: ["-i"],
 	
-	print: s => {appendToOutput(s+"\r\n");
-		     scrollToBottom("nialout");
-		    },
+	print: s => {appendToOutput(s+"\r\n"); },
 
-	printErr: s => {appendToOutput(s+"\r\n");
-			scrollToBottom("nialout");
-		       }
+	printErr: s => {appendToOutput(s+"\r\n"); }
     }
     
     
