@@ -160,7 +160,7 @@
 
 
     function nial_write_prompt(txt) {
-	appendToOutput("\r\n" + txt);
+	appendToOutput(txt);
     }
 
     // Execute either the selected text in the input area or the current
@@ -174,7 +174,7 @@
 	
 		var ns = txt.replace(/\r/g, ' ');
 		ns = ns.replace(/\n/g, ' ');
-		appendToOutput("\r\n"+txt+"\r\n\r\n");
+		appendToOutput(txt+"\r\n");
 		scrollToBottom("nialout");
 	    
 		nial_input_queue.enqueue(ns);
@@ -190,7 +190,7 @@
 	
 		var ns = txt.replace(/\r/g, ' ');
 		ns = ns.replace(/\n/g, ' ');
-		appendToOutput("\r\n"+txt+"\r\n\r\n");
+		appendToOutput(txt+"\r\n");
 		scrollToBottom("nialout");
 	    
 		nial_input_queue.enqueue(ns);
@@ -203,7 +203,7 @@
 	const nterm = document.getElementById("nialterm");
 	const ns = nterm.value;
 
-	appendToOutput(ns+"\r\n\r\n");
+	appendToOutput(ns+"\r\n");
 	scrollToBottom("nialout");
 	    
 	nial_input_queue.enqueue(ns);
