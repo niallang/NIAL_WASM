@@ -63,7 +63,7 @@
   <button onclick="execnial()">Execute Selection</button>
   <button onclick="clearInput()">Clear Editor</button>
   <button onclick="clearNialOutput()">Clear Output</button>
-  <button>Examples</button>
+  <button onclick="loadAURL()">Load URL</button>
   
   
   <!-- Create a simple CodeMirror instance -->
@@ -77,19 +77,32 @@
 	lineNumbers: true
     });
     editor.setSize(null, 200);
+    
+    // Set the contents of the editor
+    function setEditorText(txt) {
+	editor.setValue(txt);
+    }
 
-    const initialEditorText = ["# Welcome to Codemirror and Nial Examples",
-			       " ",
-			       "# Select a line of number of lines of text and execute them.",
-			       "# Then edit them and try again",
-			       " ",
-			       "% A simple example;",
-			       "1 2 3 cart 4 5 6 7",
-			       " "
-			      ];
-		  
-    // editor.setValue(iniialEditorText.join("\r\n"));
-    editor.setValue(initialEditorText.join("\r\n"));
+    
+    // Load the contents of a URI into the editor
+    function loadURL(url) {
+	$.get(url).success(function(data) {
+	    setEditorText(data);
+	});
+    }
+
+
+    function loadAURL() {
+	var url = prompt("Enter URL to load");
+	
+	loadURL(url);
+    }
+    
+     // editor.setValue(iniialEditorText.join("\r\n"));
+    //setEditorText(initialEditorText.join("\r\n"));
+    
+    loadURL("./examples/initial.ndf");
+    
   </script>
 
   <script>
@@ -211,19 +224,9 @@
 	nterm.value = "";
     }
 
-    function loadLesson() {
-	const s = "? data,arith,apl,system,set,lisp,test,syntax,file,ai,control,ops,pervasive";
-	const fn = prompt(s);
-	const path = '/home/web_user/QNial7/Nialroot/tutorial/' + fn + '.dat';
-
-	try {
-	    var txt = FS.readFile(path, {"encoding": "utf8"});
-	    editor.setValue(txt);
-	} catch (err) {
-	    alert("Error: " + err.message);
-	}
-    }
-
+    
+   
+    // Clear the editor text
     function clearInput() {
 	editor.setValue(" ");
     }

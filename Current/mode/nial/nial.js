@@ -11,7 +11,7 @@
 })(function(CodeMirror) {
     "use strict";
     
-    CodeMirror.defineMode("pascal", function() {
+    CodeMirror.defineMode("nial", function() {
 	function words(str) {
 	    var obj = {}, words = str.split(" ");
 	    for (var i = 0; i < words.length; ++i) obj[words[i]] = true;
@@ -31,16 +31,30 @@
 	var isOperatorChar = /[+\-*&%=<>!|\/]/;
 
 	function tokenBase(stream, state) {
-	    
+
+	    var atSol = stream.sol();
 	    var ch = stream.next();
-	    if (ch == "#" && state.startOfLine) {
-		stream.skipToEnd();
-		return "meta";
+
+	    if (state.inremark == true) {
+			stream.skipToEnd();
+			return "comment";
+	    }
+	    
+	    if (ch == "#" && atSol) {
+			stream.skipToEnd();
+			state.inremark = true;
+		return "comment";
+	    }
+
+	    // Characters
+	    if (ch == "`") {
+			var mc = stream.next();
+			return "atom";
 	    }
 
 	    // Phrases and faults
 	    if (ch == '"' || ch == '?') {
-		stream.eatWhile(/[\w_\.\$]/);
+			stream.eatWhile(/[\w_\.\$]/);
       		return "atom";
 	    }
 
@@ -72,8 +86,9 @@
 	    
 	    stream.eatWhile(/[\w\$_]/);
 	    var cur = stream.current();
-	    if (keywords.propertyIsEnumerable(cur)) return "keyword";
-	    if (atoms.propertyIsEnumerable(cur)) return "atom";
+	    if (/^[loLO]+$/.test(cur)) return "number";
+	    if (keywords.propertyIsEnumerable(cur.toLowerCase())) return "keyword";
+	    if (atoms.propertyIsEnumerable(cur.toLowerCase())) return "atom";
 	    return "variable";
 	}
 
@@ -104,9 +119,15 @@
 
 	return {
 	    startState: function() {
-		return {tokenize: null};
+		return {tokenize: null, inremark: false};
 	    },
 	    
+	    blankLine: function (state) {
+		if (state.inremark) {
+		    state.inremark = false;
+		}
+	    },
+	
 	    token: function(stream, state) {
 		if (stream.eatSpace()) return null;
 		var style = (state.tokenize || tokenBase)(stream, state);
