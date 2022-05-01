@@ -1,0 +1,19 @@
+.nialout {
+}
+
+.nialin {
+    color: blue;
+}
+
+.nialerr {
+    color: orange;
+}
+
+pre {
+    display: block;
+    line-height: 50%;
+}
+
+body {
+    background-color: mintcream;
+}

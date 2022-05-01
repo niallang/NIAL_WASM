@@ -1,0 +1,6410 @@
+Many of the operations and ideas of Lisp have a counterpart in Q'Nial.
+
+"car", "cdr" and "cons" in Lisp are the Q'Nial operations "first", "rest"
+and "hitch". To use Lisp terminology, they are defined for us as follows:
+
+.n car is first
+.n cdr is rest
+.n cons is hitch
+
+.n a gets "sum ("prod "x 1) 3
+
+.n (car a)
+
+.n (cdr a)
+.p
+A list can be built back using the Lisp terms or Nial ones.
+
+.n a
+
+.n (cons (car a) (cdr a))
+
+.n (first a hitch rest a)
+
+Two other Lisp words can be defined, nul and eq
+
+.n nul is empty
+
+.n eq is =
+.p
+The concept of membership can be written in terms of Lisp operations:
+
+.b member is op a b(
+     if (nul b) then o
+      elseif (eq a (car b)) then l
+      else (member a (cdr b))
+.e   endif)
+
+Is X a member of Y X Z AA? The response is l for True, indicating
+that X is a member of the list.
+
+.n "X member "Y "X "Z "AA
+
+Is X a member of Y Z? The response is o for False, indicating
+that X is not a member of Y Z.
+
+.n "X member "Y "Z
+.p
+The corresponding Q'Nial primitive operation for membership is "in".
+
+.n "X in "Y "X "Z "AA
+
+The operation "member" could be written in the functional style.
+Its definition as written above is:
+.n see "member
+
+In functional style it is:
+.n member IS OPERATION A B (or ( A EACHRIGHT = B ) )
+
+.n "X member "Y "X "Z "AA
+.p
+Some of the Lisp ideas are implemented succinctly in Q'Nial
+The operation "push" pushes item onto a stack; "pop" takes it off
+
+.n Stack is external variable
+.b push is op Item {
+   NONLOCAL Stack ;
+.e Stack := link Item Stack }
+
+.b pop is {
+   NONLOCAL Stack ;
+   Item Stack := [first,rest] Stack ;
+.e Item }
+
+.n Stack := 2 3 5 8 11 19 ;
+.n pop
+.n Stack
+.n push 30
+.n pop pop pop pop ; Stack
+.p
+The Control examples describe ways of changing the sequence in which
+expressions are executed. Normally, Q'Nial executes one expression after
+another until it comes to the end of the expression sequence. Expressions that
+change the order of execution are: if, case, for, while, repeat, exit.
+
+The "IF" construct is used to decide between choices based on the value
+of a comparison. The form is as follows:
+
+   IF     <expr> THEN <expr sequence>
+   ELSEIF <expr> THEN <expr sequence>
+   ELSEIF <expr> THEN <expr sequence>
+     ...
+   ELSE               <expr sequence>
+   ENDIF
+
+.b Age := 17;
+   IF Age >= 18 THEN "Army
+   ELSEIF Age < 16 THEN "Minor
+   ELSE "Juvenile
+.e ENDIF
+.p
+The CASE construct has the following form:
+
+   CASE   <expr> FROM
+     L0:       <expr sequence> END
+     L1:       <expr sequence> END
+     L2 | L3:  <expr sequence> END
+     ELSE <expr sequence>
+   ENDCASE
+
+where the vertical bar (|) matches on either of its labels.
+
+.n Month := 4;
+
+.b CASE Month FROM
+      1:     Month_name := "January;       END
+      2:     Month_name := "February;      END
+      3 | 4: Month_name := "March/April;   END
+   ELSE  Month_name := phrase 'May through December';
+   ENDCASE;
+.e Month_name
+
+In this case, the CASE statement labels are 1,2,3. They could equally
+well be "Jan "Feb "Mar.
+.p
+The "WHILE" construct is used to execute an expression sequence repeatedly
+as long as the result of a comparison remains true.
+
+   WHILE  <expr>  DO   <expr sequence>   ENDWHILE
+
+.b whileexample IS OPERATION Win {
+      Sequence := Null;
+      WHILE last Sequence ~= Win DO
+         D1 D2 := each ceiling (6 * random 2);
+         Toss := sum D1 D2;
+         Sequence := Sequence append Toss;
+      ENDWHILE;
+.e    Sequence }
+
+.n whileexample 11
+
+The parameter for whileexample is "Win". "Sequence is created as
+an empty list. The WHILE loop continues as long as the last value
+of the list is not equal to the value of "Win". At the end, the
+value of "Sequence" is displayed.
+.p
+The "REPEAT" construct is used to execute an expression sequence repeatedly
+until the result of a comparison is true.
+
+   REPEAT   <expr sequence>   UNTIL <expr>   ENDREPEAT
+
+.b repeatexample IS OPERATION Win {
+      Sequence := Null ;
+      REPEAT
+        Sequence := Sequence append sum (EACH ceiling (6 * random 2))
+      UNTIL last Sequence = Win
+      ENDREPEAT ;
+.e    Sequence }
+
+.n repeatexample 3
+
+The parameter for repeatexample is "Win". "Sequence is created as an empty
+list. The body of the loop is executed at least once. The REPEAT loop
+continues until the last value of the list is equal to the value of "Win".
+At the end, the value of "Sequence" is displayed.
+.p
+The "FOR" construct is used to execute an expression sequence repeatedly
+while a variable takes on successive values of the items of an expression.
+
+   FOR  <variable>  WITH  <expr>  DO  <expr sequence>  ENDFOR
+
+.s Mode := setformat 1 0 1;
+.b Numbers := 2. 3. 5. 7. 11.;
+   FOR X WITH Numbers DO
+      write (X) (X*X) (X power X)
+.e ENDFOR
+
+X takes on values in Numbers in successive executions of the body of the
+loop. The values of X, X squared and X to the power X are displayed.
+.s set Mode; set "sketch;
+.p
+Result of a Loop expression
+
+A loop expression is often used to repeat a sequence a certain number of
+times and return a result. It is also used to repeat some side-effect of
+the repeated sequence. A side-effect might be the writing of a record to a
+file, for example.
+
+If the intention is to return a value, the loop expression can be part of
+an assignment expression.
+
+.b List1 := 1 1 ;
+   Fibonacci := FOR I WITH count 10 DO
+      List1 := List1 append (sum (last List1) (second reverse List1))
+   ENDFOR ;
+.e write "Fib Fibonacci ;
+
+.p
+The EXIT expression can be used to exit from a repeat, while or for loop.
+
+If an EXIT expression is evaluated, the loop terminates early and returns
+with the value of the simple expression following the reserved word EXIT.
+
+.b List1 := 1 1 ;
+   Fibonacci := FOR I WITH count 10 DO
+      IF last List1 > 10 THEN EXIT List1 ; ENDIF ;
+      List1 := List1 append (sum (last List1) (second reverse List1))
+   ENDFOR ;
+.e write "Fib Fibonacci ;
+.p
+.s setformat '%5.2f' ; set "sketch ;
+Arithmetic Operations
+
+There are many equivalent ways of adding two or more numbers.
+
+.n 23 + 45
+.n 23 plus 45
+.n sum 23 45
+.n + 23 45
+
+.n sum 234 345 456 567 678 789 232 343 454 565 676 787 898 736 592
+
+An operation between two values is said to be in infix notation.
+If it precedes the values, it is said to be in prefix notation.
+.p
+Q'Nial can add a list or a table of numbers.
+
+.n Numbers := 234 345 456 567 678 789 232 343 454 565 676 787 898 736 592;
+
+.n Table := 3 5 reshape Numbers
+
+.n (sum Numbers) (sum Table)
+
+If numbers are grouped in lists, those in corresponding positions are added.
+
+.n sum (2 5 8) (5 3 7)
+.n sum (2 5 8) (5 3 7) (3 2 1)
+.n sum (2 5 8) (5 3 7) (3 2 1) (1 2 3)
+.p
+To add the individual lists, the transformer EACH is used.
+
+.n EACH sum (2 5 8) (5 3 7)
+.n EACH sum (2 5 8) (5 3 7) (3 2 1)
+.n EACH sum (2 5 8) (5 3 7) (3 2 1) (1 2 3)
+
+Q Nial cannot add a number to an alphabetic character. The result is ?A.
+The fault ?A indicates that an error in arithmetic has occurred.
+
+.n 23 + `X
+
+Q'Nial can add integers to real (decimal point) numbers.
+.s Fmt := setformat '%10.6f' ;
+
+.n sum .0003 3 30
+.p
+Although the internal operations of arithmetic on real number are 
+done to 15 digits of precision, the number of digits displayed is 
+under program control.
+
+The operation that sets the precision of numeric displays is "setformat".
+It is described under the topic "data" in the main menu.
+
+The operation "setformat '%10.6f'" sets the display to a 10 character wide
+field having 6 digits after the decimal point.
+
+.n setformat '%10.6f' ;  1.23456789012345
+
+
+.n setformat '%20.14f' ; 1.23456789012345
+
+
+.n setformat '%5.2f' ;   1.23456789012345
+
+The result is rounded to the requested precision.
+.p
+We reset the display of relas to the default value.
+.n setformat '%g';
+
+The operation "opp" or "opposite" returns the number of opposite sign.
+
+.n Numbers gets 3 7 -5 16
+
+.n opposite Numbers
+
+The operation "divide" or "div" or the symbol / performs division.
+
+.n (72. div 9.)  (72. divide 9.)  (72./9.)
+
+Several numbers can be divided by the same value at once.
+
+.n 72.   13.69   22.77   / 9.
+.p
+The operation "recip" returns the reciprocal of a Number.
+
+.n count 10
+
+.n recip count 10
+
+The operation "mix pack" makes a table out of a pair of lists of the same
+length. We can use it to create a table of the integers and their reciprocals.
+
+.n mix pack (count 10) (recip count 10)
+.p
+The operations "quotient" and "mod" are used for whole number arithmetic.
+
+"quotient" returns the whole part of (Number1 divided by Number2).
+"mod"      returns the remainder  of (Number1 divided by Number2).
+For example, 14 divided by 3 gives 4 with 2 left over.
+
+.n 14 quotient 3
+.n 14 mod 3
+
+The above two expressions could be combined as follows where [quotient,mod]
+is called an atlas.
+
+.n 14 [quotient,mod] 3
+.p
+.c Multiplication
+
+The operations "times", "*" and "prod" all mean multiplication.
+
+.n (8. times 9.) (8. * 9.) (prod 8. 9.)
+
+The product of the list of numbers 3 4 5 is 3*4*5 or 60.
+
+.n prod 3 4 5
+
+Factorial 5 is the same as prod count 5
+
+.n count 5
+
+.n prod count 5
+.p
+Angles are expressed in radian measure. Pi radians = 180 degrees.
+
+.n Fmt := setformat '%10.5f' ;
+
+.n Angle gets Pi / 6 ;  % Pi / 6 = 30 degrees.
+
+.n sin Angle
+
+.n cos Angle
+
+.n tan Angle
+
+.s setformat Fmt ;
+.p
+In Q'Nial boolean arithmetic, "l" represents true and "o" represents false.
+
+A predicate is a test for true. In the following examples, the first
+returns true and the next two return false.
+
+.n 7 = 7
+
+.n 1 = 2
+
+.n 4 < 3
+
+The operation "=" considers the two items and returns "l" only if they are
+identical; whereas "match" compares corresponding items of two arrays.
+
+.n (2 3 1 4 5 3 7 5)   =   (1 2 3 4 5 6 7 8)
+.n (2 3 1 4 5 3 7 5) match (1 2 3 4 5 6 7 8)
+.p
+The operations "and", "or", "not" and "sum" all apply to boolean values.
+
+The operation "and" returns true if all the items are true.
+The operation "or"  returns True if any item is true.
+The operation "not" returns the opposite boolean value.
+The operation "sum" returns the number of true's in the array.
+
+.n list1 := llolloool
+.n and list1
+.n or  list1
+.n post ((list1) (not list1))
+.n sum list1
+.p
+If there are several lists of truthvalues ( called bitstrings), then
+the operations "and" and "or" consider items in corresponding positions.
+
+.n list1 := (llol)(loll)(lolo)
+
+.n and list1
+
+.n or  list1
+
+The operation "not" applies to each truthvalue.
+
+.n not list1
+
+.n sum list1
+.p
+System operations for keyboard input in interactive mode:
+
+The operation "readscreen" displays the string argument as a prompt
+and stops, awaiting an entry. It accepts all text typed until the
+<RETURN> as the input and assigns it to "Name" as a string.
+
+.n Name gets readscreen 'Please type your name: ';
+
+.n Name
+
+The operation "read" displays the string argument as a prompt
+and stops, awaiting an entry. The text entered is executed, which
+causes a string representing numbers to be converted to numbers
+or a string representing a Q'Nial expression to be evaluated.
+
+.n X Y gets read 'X Y coordinates (Type 2 numbers): ' ;
+
+.n X Y
+.p
+System operations to write to the screen in interactive mode:
+
+The operation "writescreen" writes a string to the screen. 
+
+.n writescreen 'Correct answer';
+
+The operation "write" formats its argument as a character table and displays
+the result on one or more lines.
+
+.n write "Coordinates: X Y ;
+.n write  "Coordinates: X Y (3 4 5)
+
+The operation "writechars" writes a string to the screen without a newline:
+
+.n writechars 'abc'; writescreen ' more text';
+
+
+.p
+The operation "edit" is used to edit a text file. It's argument is the name of
+a file in the current directory as a phrase or string. For example:
+
+    edit "test.ndf
+
+would open the file test.ndf using the designated editor on the host 
+operating system. If the file did not exist it is created as an empty 
+file for the ditor.
+
+Alternatively the argument can be a string that forms a path to file to be edited.
+    edit "~/test1.ndf"
+.p
+
+.s setformat '%g'; set "sketch;
+Syntax (the Grammar of Q'Nial)
+
+We begin by describing the two list notations in Nial:
+Strand notation describes a list by writing the items one after the other, 
+separated by one or more spaces. Items can be grouped by parentheses.
+
+.n 2 3 (4+5) (6 7)
+
+Brackets notation describes a list by  writing the items one after the other, 
+separated by commas and bounded by square brackets [ ]. The brackets notation
+provides a way of describing a list with one item or a list with no items.
+
+.n [2,3,4+5,[6,7]]
+.n [[],[1],[1,2]]
+.p
+Both strand and bracket notation can be used in the same list.
+
+.n 23 'abc' [2,3,"Now] 5 [] [3,"Then,4 5 6]
+
+The items in the list are:
+
+       Item              Description
+
+       23                The number 23
+       'abc'             The string abc
+       [2,3,"Now]        Brackets notation for a list of three items
+       5                 The number 5
+       []                An empty list
+       [3,"Then,4 5 6]   Brackets notation for a list of three items, the
+                         third item being a list of three items in strand
+                         notation
+.p
+An operation can be used in both prefix and infix notation.
+In prefix notation you write the operation first and its argument second.
+
+.n sin 1.047197
+.n sum 2 3 5 7 11
+.n pack 'abcd' 'efgh' 'ijkl'
+.n link (2 3) (4 5 6) (7 8)
+.n hitch 'abc' 'defgh'
+.n append 'abcde' 'fgh'
+.n not llloolll
+.p
+In infix notation you write the operation between its two arguments.
+
+.n 23 + 72 55 32
+.n 3 4 reshape 'abcde'
+.n "abc hitch 4 5 6
+
+The infix notation has the same meaning as applying the operation to
+the pair formed by the two arguments.
+
+.n plus 23 (72 55 32)
+.n hitch ["abc,4 5 6]
+
+Some operations, such as "hitch" and "reshape" expect a pair as an
+argument and hence are frequently written in infix notation.
+.p
+Two or more operations may be written in sequence. In this case, the
+rightmost one is applied first and then the next one to the left is
+applied to the result of the previous operation. This is easily
+understood by inserting the words "of the" between the operations.
+
+The "first rest 4 5 6 7" can be read "the first of the rest of 4 5 6 7".
+The rest of 4 5 6 7 returns 5 6 7 and the first of 5 6 7 is 5.
+
+.n rest 4 5 6 7
+
+.n first 5 6 7
+
+.n first rest 4 5 6 7
+.p
+A Nial expression can mix infix and prefix notation. For example,
+
+.n 20 + rest 34 58 62 79
+
+is evaluated as though it were:
+
+.n 20 + (rest (34 58 62 79))
+
+The rules used here are
+ (i) evaluating a list in strand notation precedes operation application.
+ (ii) the infix use of + has as its right argument the simple expression
+    to its right which includes the prefix application of "rest".
+Similarly,
+
+.n first 4 5 6 hitch 8 9 10 100
+
+evaluates as
+
+.n (first 4 5 6) hitch 8 9 10 100
+.p
+A transform is an operation resulting from applying a transformer to an
+operation. Thus "EACH second" is a transform. It finds the second item
+of each of the items in the array.
+
+.n EACH second (4 5 6 7) 'abcd' ("xxx "yyy "zzz)
+
+"EACHBOTH reshape" applies the corresponding items in both arguments.
+
+.n 2 3 EACHBOTH reshape "abc "xyzz
+
+"EACHLEFT EACHRIGHT equal" applies equal in turn to all pairs of items.
+
+.n 'ri' EACHLEFT EACHRIGHT equal 'There is a tide in the affairs of men'
+.p
+The word "gets" and the symbol pair ":=" mean "is assigned the value of".
+
+.n An_array gets (4 5) ("abc "xxxx `z)
+
+Lowercase letters in an identifier are automatically translated into
+uppercase before the value of the identifier is looked up in the internal
+table in Q'Nial. Thus, an_array, An_Array and AN_ARRay have the same value.
+
+.n  an_array        An_Array        AN_ARRay
+
+.p
+The convention of writing a variable with a leading capital letter,
+an operation in lowercase and transformers and reserved words in
+uppercase is simply to make it easy to identify the role of a name in
+an expression. The operation "see" displays a definition in a structured form,
+indenting where necessary and following the naming conventions.
+
+The following is a definition written with no regard to upper case.
+
+.n loop is op a{for i with grid a do write a@i;endfor}
+
+Q'Nial does the work of making it structured.
+
+.n see "loop
+.p
+Several variables can be assigned in one expression.
+
+.n Able Baker Charlie := 4 5 6
+
+.n Baker
+
+.n Able Baker := 4 5 6
+
+The ?assignment fault indicates that the number of items on the
+right hand side of ":=" did not match the number of variables.
+.p
+.n A := tell 5
+
+.n A gets tell 100; 
+
+.n sum A
+
+The display of large intermediate results (tell 100) is time consuming.
+The semi-colon at the end of the expression prevents the display.
+.p
+An expression sequence is a number of expressions separated by semi-colons.
+The value returned is the value of the last expression.
+
+.n 3;4
+
+.n Numbers gets 4 5 6; sum Numbers
+
+.n Num gets 23 45 67 89; S gets sum Num; T gets tally Num; Ave gets S/T
+
+.n Num S T Ave
+
+The normal way to write a program in Nial is to write a sequence of
+expressions that end up with the result desired.
+.p
+In the following expression, the value of A is computed and then this
+value used in the second expression. The computed value of A + 3 becomes
+the left argument to the reshape operation.
+
+.n (A gets tell 3; A + 3) reshape `z
+
+Since "A is tell 3", "A + 3" is "(0 1 2) + 3" which is "3 4 5".
+
+.n                  3 4 5  reshape `z
+.p
+The keyword "IS" is used in the definition of named expressions,
+operations and transformers.
+
+One way to define a new operation is to name a composition of other ones.
+
+.n second_last IS second reverse
+
+.n second_last 4 5 6 7 8 9
+
+An operation form is a form for defining operations which has the form:
+
+Operation_name IS OPERATION Parameters {expression sequence}
+.p
+An example is
+
+.n tagwith IS OPERATION Tag Data {Tag hitch Data}
+
+.n see "tagwith
+
+Here is an application of tagwith:
+
+.n "circle tagwith ("center [35,45]) ("radius 20)
+
+In applying this operation, "Tag" is replaced by the phrase "circle",
+and "Data" is replaced by "("center [35,45]) ("radius 20)".
+.p
+A second example of the use of tagwith is:
+
+.n "Car tagwith ("Manufacturer 'Ford Motor Company') ("Price '$8,999.00')
+.p
+In the following statistical operations, each definition is built using
+an operation previously defined.
+
+.n average IS OPERATION A (sum A / tally A)
+
+.n deviates IS OPERATION A (A minus average A)
+
+.n variance IS OPERATION A ((sum (deviates A power 2)) divide (tally A - 1))
+
+.n standard_deviation IS OPERATION A (variance A power 0.5)
+.p
+.s fmt := setformat '%5.2f';
+Use of the statistical operations:
+
+.n N := 22 44 66 28 36 49 17 39 47 58 28 57; average N
+
+.n deviates N
+
+.b mix pack ('Average ' 'Variance' 'St. Dev ')
+.e            ([average,variance,standard_deviation] N)
+.s setformat fmt;
+.p
+A language used for artificial intelligence applications must handle
+symbols effectively. It must be able to select items from sets of items,
+make decisions about the items and manage associations between items.
+An AI language should be able to mix numeric and symbolic computations.
+
+These examples show how Q'Nial handles symbols.
+
+Q'Nial can determine if an item is a member of a collection of objects.
+
+.n Names := "Tom "Mary "Susan "Bill "Frank "Ludwig "Rafael "Sven "Maude;
+
+.n find "Susan Names
+
+Susan is in position 2 in the list (counting 0, 1, 2, 3 ...). The result is
+an address (a list of length one).
+
+.n "Bill in Names
+
+The result is "l", representing True. Therefore, Bill is in Names.
+.p
+The pre-defined operation "seek" provides the results of "find" and "in".
+
+.n Names
+
+.n There Where := seek "Ludwig Names
+
+The result indicates that Ludwig is in Names at address 5.
+
+.n IF There THEN Names @ Where ENDIF
+.p
+The string 'if the door is open enter the room' can be converted to
+phrases using the library operation "towords".
+
+.n set "decor ;
+
+.n Words := towords 'if the door is open enter the room'
+
+The phrases can be converted to strings using "EACH string".
+
+.n Sentence := EACH string Words
+.s set "nodecor ;
+.p
+The next example finds the words with 4 letters in the list Words.
+
+The (tally string) converts a word to a string and determines how many
+characters are in it.
+
+EACH applies (tally string) to each of the items in Words.
+
+This gives the list 2 3 4 2 4 5 3 4.
+
+.n Words
+
+.n Count_of_characters := EACH (tally string) Words
+
+The list 2 3 4 2 4 5 3 4 is compared to 4 returning the bitstring oololool.
+
+.n Extractor := Count_of_characters match 4
+.p
+Items are extracted from Words using "sublist".
+
+.n Wordswith4letters := Extractor sublist Words
+
+These separate lines can be combined as one expression as follows:
+
+.n Wordswith4letters := EACH (tally string) Words match 4 sublist Words
+.p
+A requirement in AI is to manage associations, such as animals and facts.
+.n post pack Animalfacts
+.p
+To determine facts about cats, the operation "lookup" is used.
+
+.n lookup Animalfacts "cat
+
+The operation "lookup" is user-defined as follows:
+
+.n see "lookup
+
+.n lookup Animalfacts "chicken
+
+There is no information on "chicken".
+.p
+Is there an association between "cow" and "gives milk"?
+
+.n Animalfacts has_assoc ("cow (phrase 'gives milk'))
+
+The operation "has_assoc" is another user-defined one.
+
+.n see "has_assoc
+.p
+The operation "add_assoc" is used to add a new association.
+
+.n see "add_assoc
+.p
+Add_assoc is used to add the association that "cats are finicky".
+
+.n Animalfacts := Animalfacts add_assoc "cat "finicky;
+
+.n lookup Animalfacts "cat
+
+Now cats are recorded as finicky.
+.s Fmt := setformat '%5.2f';
+.p
+An AI language should be able to mix numeric and symbolic computations.
+.b Report IS OPERATION Partnames Quantity Price Title {
+       Cost := Quantity * Price;
+       Body :=  ("Part "Number "Price (phrase '   Cost')
+                hitch (pack Partnames Quantity Price Cost)
+                append " " "Total (sum Cost));
+.e     post Title (mix Body) }
+
+.n Parts := "wing "fuselage "rudder "tail "engines ;
+.n Quantities := 2 1 1 1 4 ;
+.n Prices := 3.60 10.30 1.30 .70 2.30 ;
+.n Report Parts Quantities Prices 'Aircraft Plan'
+.s setformat Fmt ;
+.p
+.s Table1 := 2 3 reshape (10 * random 6)
+.s Table2 := 2 3 reshape (10 * random 6)
+.s Table3 := 2 3 reshape (10 * random 6)
+.s Table4 := Table1 - Table2
+.s Table5 := Table4 / Table3
+.s List1 List2 List3 List4 List5:=EACH list Table1 Table2 Table3 Table4 Table5
+.s List4@2 := 2 2 reshape 2.34 -5.67 -3.12 4.32 ;
+.s setformat '%5.2f';
+Pervasive Operations
+
+A unary pervasive operation maps an array to another array of identical
+structure, mapping each atom by the function's behaviour on atoms.
+There are twenty-two pre-defined unary pervasive operations. Examples of
+each are given in the next few screens.
+
+The unary pervasive operations include
+
+Operation    Function
+
+abs          absolute value
+
+.n List4
+.n abs List4
+.p
+The unary pervasive operations include
+
+Operation    Function
+
+arccos       inverse cosine
+arcsin       inverse sine
+arctan       inverse tangent
+
+.n List7 := List1 / List2
+.n arccos List7
+.n arcsin List7
+.n arctan List7
+.p
+The unary pervasive operations include
+
+Operation    Function
+
+ceiling      lowest integer below a real number
+char         integer to character conversion
+charrep      character to integer conversion
+
+.n List4
+.n ceiling List4
+.n char 40 50 60 70 80 90 91 92 93 94 95
+.n charrep 'abcDEF+-*/'
+.p
+The unary pervasive operations include
+
+Operation    Function
+
+cos          cosine
+cosh         hyperbolic cosine
+
+.n List4
+.n cos List4
+.n cosh List4
+.p
+The unary pervasive operations include
+
+Operation    Function
+
+exp          exponential
+
+.n List4
+.n exp List4
+
+.p
+The unary pervasive operations include
+
+Operation    Function
+
+ln           natural logarithm
+log          logarithm to the base 10
+
+.n mix pack List7 (ln List7)(log List7)
+.p
+The unary pervasive operations include
+
+Operation    Function
+
+not          opposite of a boolean value
+opposite     opposite of a number
+
+.n post (llloooll)(not llloooll)
+
+.n mix List4 (opposite List4)
+.p
+The unary pervasive operations include
+
+Operation    Function
+
+pass         identity function
+reciprocal   reciprocal of a number
+
+.n List4
+.n pass List4
+.n reciprocal List4
+.p
+The unary pervasive operations include
+
+Operation    Function
+
+sin          sine
+sinh         hyperbolic sine
+sqrt         square root of a number
+
+.n mix pack List7 (sin List7)(sinh List7)(sqrt List7)
+.p
+The unary pervasive operations include
+
+Operation    Function
+
+tan          tangent
+tanh         hyperbolic tangent
+
+.n mix pack List7 (tan List7) (tanh List7)
+
+.p
+The unary pervasive operations include
+
+Operation    Function
+
+type         representative atom of the same type
+
+.n set "diagram;
+
+.n mix pack (o 1 2.3 `X "Wow ??error23)(type o 1 2.3 `X "Wow ??error23)
+.s set "sketch ;
+.p
+Binary Pervasive
+
+A binary pervasive operation maps two arrays having identical structure to
+one with the same structure, mapping each pair of corresponding atoms by the
+function's behaviour on pairs of atoms.
+
+All the operations of arithmetic and logic are binary pervasive.
+
+If a binary pervasive operation is applied to a pair of arrays that do not
+have the same shape, the effect is to build a conformable pair by
+replicating an atom or solitary item of the pair to the shape of the other
+item. If both items are of unequal shape and if both items are made up of
+more than one item, the fault ?conform is returned.
+.p
+Binary Pervasive Examples
+
+Operation    Function
+
+gt or >      greater than comparison
+gte or >=    greater than or equal comparison
+
+.n List1
+.n List2
+.n List1 gt List2
+.n List1 >= List2
+.p
+Binary Pervasive Examples
+
+Operation    Function
+
+lt or <      less than comparison
+lte or <=    less than or equal comparison
+
+.n Table3 (Table3 lt 5)
+
+.n List4 (List4 <= 3)
+.p
+Binary Pervasive Examples
+
+Operation    Function
+
+match        equality of atoms without type coercion
+mate         equality of atoms with type coercion
+
+.n (3.0 match 3)(3.0 mate 3)
+.n (tell 2 3) (1 match tell 2 3)
+.n `  match 'find the blanks in a sentence'
+.n 1.0 mate lll (1 1 1) (1.0 1.0) 1.0 1.1
+.p
+Binary Pervasive Examples
+
+Operation    Function
+
+mod          remainder on division of integers
+quotient     quotient of division of integers
+
+.n List10 := each ceiling List1
+.n List20 := each ceiling List2
+.n quotient List10 List20
+.n mod List10 List20
+.n [quotient,mod] 157157 13
+.n [quotient,mod] 100 16
+.p
+Binary Pervasive Examples
+
+Operation    Function
+
+plus         addition of numbers
+minus        subtraction of numbers
+
+.n List4
+.n List4 plus 5
+.n List4 minus 5
+.p
+Binary Pervasive Examples
+
+Operation    Function
+
+times        multiplication of numbers
+divide       division of numbers
+
+.n mix pack List1 List2 (List1 times List2)
+.n mix pack List1 List2 (List1 divide List2)
+.p
+Multi Pervasive
+
+A multi pervasive operation maps an arrays with items having
+identical structure to one with the same structure, applying the operation
+to atoms in corresponding positions in the items.
+
+There are six operations in this class. They are the "reductive"
+operations of arithmetic and logic.
+
+If a multi pervasive operation is applied to an array that does not have
+items of the same shape, the effect is to build a conformable array by
+replicating an atom or solitary item of the array to the common shape of
+the other items. If two or more of the items have tally different from one
+and are of unequal shape, the fault ?conform is returned.
+
+The multi pervasive operations are: and, max, min, or, product, sum.
+.p
+.n and l l
+.n and lllollololl
+.n and lllo lolo oolo
+.n or l l
+.n or lllollololl
+.n or lllo lolo oolo
+.p
+.n List1
+.n [max,min] List1
+.n List4
+.n [max,min] List4
+.p
+.n List1
+.n sum List1
+.n mix List1 List2 List3 (sum List1 List2 List3)
+
+.n List1 link (product List1)
+.n mix pack List1 List2 List3 (product List1 List2 List3)
+.s setformat '%g';
+.p
+Some of the ideas and operations of APL (A Programming Language - IBM)
+have counterparts in Nial. In this set of examples, reshape, sublist and
+indexing using @, # and | are shown.
+.s set "sketch
+
+"reshape" in Q'Nial is equivalent to infix use of "rho" in APL
+
+.n 4 10 reshape count 40
+.n 20 reshape `z
+.n 2 3 reshape 45 `a (2 3) "xxx
+
+Items of the argument are repeated cyclically to fill the result.
+.p
+"sublist" is useful for extracting specific fields from records.
+
+.n lol sublist 'abc'
+
+.n R1 := '1357Mr  Smith      Thomas A   234 Ventura Drive   Hollywood   CA';
+.n R2 := '2468MissJohnston   Rebecca P  1015 Main Street,#33Los Angeles CA';
+.n Ex :=  lllloooolllllllllllooooooooooooooooooooooooooooooolllllllllllloo;
+
+.n Ex EACHRIGHT sublist R1 R2
+
+If the bitstring is too short to handle all the items of the array, it is
+repeated until all items have been addressed.
+
+.n lo sublist count 20
+
+.p
+The sublist operation can result in specific fields
+
+.n R1 := '1357Mr  Smith      Thomas A   234 Ventura Drive   Hollywood   CA';
+.n R2 := '2468MissJohnston   Rebecca P  1015 Main Street,#33Los Angeles CA';
+.n E1 :=  lllloooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo;
+.n E2 :=  oooooooolllllllllllooooooooooooooooooooooooooooooooooooooooooooo;
+.n E3 :=  oooooooooooooooooooooooooooooooooooooooooooooooooolllllllllllloo;
+
+.n Result := E1 E2 E3 EACHRIGHT EACHLEFT sublist R1 R2
+
+One interesting use of this capability is to apply the extraction process
+against the records of a file and then use a "rule interpreter" to select
+the records needed for further analysis or action.
+The rules can be Nial strings that are executed.
+.p
+.n R1 := '1357Mr  Smith      Thomas A   234 Ventura Drive   Hollywood   CA';
+.n R2 := '2468MissJohnston   Rebecca P  1015 Main Street,#33Los Angeles CA';
+.n R3 := '3579Mrs Smith      Anne A     123 Morden Street   New York    NY';
+.n R4 := '4567Dr  Jones      Paul B     67 Sydenham Street  Kingston    ON';
+.n Records := R1 R2 R3 R4 ;
+
+.n E1 :=  lllloooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo;
+.n E2 :=  oooooooolllllllllllooooooooooooooooooooooooooooooooooooooooooooo;
+.n E3 :=  oooooooooooooooooooooooooooooooooooooooooooooooooolllllllllllloo;
+.n Extractors := E1 E2 E3 ;
+
+.n Res := Extractors EACHRIGHT EACHLEFT sublist Records;
+.n mix Res
+.p
+If the first number is greater than 2000, the second starts with "J"
+and there are three items, then select this record.
+
+.b Rule := 'execute first Rec > 2000'
+           'first second Rec = `J'
+.e         'tally Rec = 3';
+
+.b apply_rules is op Rules Results {
+      Extractor := '';
+      FOR I WITH grid Results DO
+        Rec := Results @ I;
+        Yes := and ( EACH execute Rules ) ;
+        Extractor := Extractor link Yes
+.e    ENDFOR }
+
+.n Winners := apply_rules Rule Res
+
+.n mix ( Winners sublist Records )
+
+.p
+The operation "and" returns Truth if all items in the argument are Truth.
+The operation "or"  returns Truth if any item in the argument is Truth.
+The operation "not" returns an argument of opposite truth value.
+
+.n lollo or olllo
+
+.n and (lollo) (olllo) (llllo)
+
+.n not loollloloollolool
+
+If a bitstring is summed, the l's are treated as ones.
+
+.n sum lllololllol
+
+The operation "abs" returns 0 for False and 1 for True.
+
+.n abs lloololo
+.p
+Addresses in Nial start at address 0 for a list, 0 0 for a table.
+
+.n Array gets 3 5 reshape count 15
+
+.n grid Array
+
+The grid can be used to select items from the array
+
+.n grid Array choose Array
+.p
+The operation "pick" selects one item from an array.
+
+.n Array
+.n 2 3 pick Array
+
+The "at" (@) notation is used to select an item using indexing.
+
+.n Array @ (2 3)
+.n Array @ (2 3) gets 99 100
+.p
+The operation "choose" selects many items from the array.
+
+.n Array
+
+.n [2 3,1 4] choose Array
+
+.n (7 plus count 5) choose list Array
+
+.p
+The notation for multi-item selection and insertion is "at all" (#).
+
+.n Array
+
+.n Array # [2 3,1 4,0 1]
+.n Array # [0 0,1 1] := 22 33
+.p
+The notation for slicing (selecting a row, column or sub array) is "|".
+.n Array := 5 5 reshape count 25
+
+.n Array | [1,]
+.n Array | [,3 4]
+.n Array | [2 4,1 2 3]
+
+In this last example, the items selected are from rows with address 2 and 4,
+and from columns with addresses 1, 2 and 3.
+.p
+
+.s set "sketch; set "nodecor;
+To insert an apostrophe in a string, use two apostrophes, side by side
+
+.n Company Software := 'Nial Systems Limited' 'Q''Nial'
+
+To insert an apostrophe in a phrase, just use one apostrophe.
+
+.n Company Software := (phrase 'Nial Systems Limited ') "Q'Nial
+.pThis section discusses the file access operations supported by Q'Nial.
+
+Q'Nial supports three types of array access:
+- sequential file access where access is one record at a time,
+- direct access where Q'Nial manages a file, and a corresponding index 
+  and allows selection and writing at arbitrary places,
+- access to host fields within a host file by position.
+
+Sequential and direct file access requires a file to be opened in an 
+appropriate mode. The operation call: 
+   open Fn Mode 
+opens the file Fn for use in mode Mode, where Mode is
+ "r for read, "w for write, "a for append, "d for direct, and
+ "c for communications. 
+The call returns an integer, F that refers to the active file handle.
+
+When access is finished the file is closed using the file handle integer
+with operation call:
+   close Fn
+.p
+The operations "readfile" is used to read records one at a time from a
+file that has been opened in "r mode.
+
+   Rec := readfile F
+
+returns the next available record as a string.
+
+The operation "writefile is used to write strings to a file opened 
+in "w or "a mode.
+
+   writefile F Rec
+
+writes the string Rec to the file with handle F.
+.p
+Example 1 - open a file called "tempfile"" in "w mode, 
+            write 2 records and close it.
+
+.n Fout := open "tempfile "w
+.n writefile Fout 'First record'
+.n writefile Fout 'Second record'
+.n close Fout
+
+Example 2 - open the file "tempfile" in "r mode, 
+            read 3 records and close it"
+.n Fin := open "tempfile "r
+.n Rec gets readfile Fin
+.n Rec gets readfile Fin
+.n Rec gets readfile Fin
+.n close Fin
+
+When there are no more records, the result is the fault ?eof for end-of-file.
+.p
+Q'Nial has 3 operations to make it convenient to read, write, or append to
+complete files in one step. The calls:
+
+    getfile Fn
+             
+  - returns the records of file with name Fn,
+
+    putfile Fn Recs        
+
+  - writes the strings in array Recs to file with name Fn, and
+
+    appendfile Filename Recs     
+
+  - appends the strings in Recs to the end of file with name Fn.
+
+getfile, putfile and appendfile do the work to open and close the files.
+.p
+Example 3 - use of the operations on complete files
+
+.n recs := getfile "tempfile
+
+.n appendfile "tempfile 'Third record'
+.n recs gets getfile "tempfile
+
+Example 4 - use getfile to replace the contents of a file
+
+.n putfile "tempfile ['Another record','More still']
+.n getfile "tempfile
+.p
+Direct access files are constructed by Q'Nial using the host OS file system.
+
+A direct access file has two physical files; one contains an index, the other 
+contains the records. The mechanism supports two types of component files
+having either strings as components or arbitrary arrays as components.
+To access a direct file you need to open it with Mode "d.
+
+A component is indexed by an integer. 
+The following operations are avallable:
+
+writearray F N A 
+   - writes array A as component N to the file with handle F.
+readarray F N        
+   - returns the array component N from the file with handle F.
+eraserecord F N      
+   - erases the  N in the file with handle F.
+filetally F          
+   - returns the the largest component number for the file
+     with handle F.
+.p
+Example 5 - open a direct access file "tempdirfile" that uses
+arrays as components
+
+.n F := open "tempdirfile "d
+
+.n writearray F 0 'This is the first record'
+.n writearray F (count 3) ['abc', tell 2 3,3.5 4.5]
+.n filetally F
+
+.n readarray F 2
+.n eraserecord F 2
+.n readarray F 2
+.n readarray F (tell filetally F)
+.n close F
+.p
+To read and write to a component file that has strings Q'Nial
+provides the operations:
+
+readrecord F N 
+- read the component N of the direct file with handle F
+
+writerecord F  Str N
+- write  the string Str as component N of the direct file 
+  with handle F
+
+If the first use of a direct access file is to write it 
+using writerecord, then the components are strings,
+not arbitrary arrays.  All subsequent usage of that file must 
+use readrecord or writerecord. You cannot use readarray 
+and readrecord operations on the same file.
+.p
+In addition to the file input/output operations described so far, 
+there are two operations that directly access host files by
+name and position.
+
+   readfile Filename Start Size
+returns Size "bytes" of the file with name Filename
+starting at position Start as a Nial string.
+
+   writefield Filename Start Str
+writes the "bytes" of the string Str to the file with name
+Filename starting at position Start, overwriting whatever
+content was there.
+.pThe dog's name was Spot. He was a golden retriever. Spot
+lived on a farm near the haunted house. Spot liked to chase
+Charlie. One day Spot chased Charlie into the house.
+                    Set Operations in Nial
+
+A set is a collection of objects in which the order of the objects or
+the number of times the object occurs is not important. The question of
+interest is "What objects are in the collection?"
+
+A set can be a list of phrases. The operation "isin" tests for membership.
+
+.n isin IS OP Item Array {IF Item in Array THEN "Yes ELSE "No ENDIF}
+
+.n Friends := "Mary "Ludwig "Hercule "Tom "Sarah ;
+
+.n "Tom isin Friends
+
+Changing the sequence of "Friends" does not affect the result.
+
+.n Friends2 := "Ludwig "Tom "Sarah "Hercule "Mary ;
+
+.n "Tom isin Friends2
+.p
+The set operation "union" is accomplished by "link".
+
+.n Pals := "Jack "Tony "Rick "Tom "Kalev
+
+.n All_friends := link Friends Pals
+
+Although Tom appears twice, it does not affect the result.
+
+.n "Tom isin All_friends
+
+.n Acquaintances := "Joan "Betty "Carol "Mary
+
+.n Everyone := link Friends Pals Acquaintances
+.p
+The intersection of sets is accomplished by the operation "lap".
+
+.b lap IS OPERATION A {
+     IF empty A THEN A
+     ELSE EACH and (first A EACHLEFT EACHRIGHT in A) sublist first A
+.e   ENDIF }
+
+.n lap Friends Pals
+
+This shows that Tom is the only Friend who is also a Pal.
+
+.n Friends except Pals
+
+These are the friends except for Tom.
+.p
+Duplicates in a set can be eliminated by the use of "cull link".
+
+.n All_friends := cull link Friends Pals
+
+The operation "allin" handles set inclusion.
+
+.n "Tom "Mary "Jack allin All_friends
+
+The operation "like" handles set equality.
+
+.n Friends like Friends2
+
+All the items are in both sets.
+.p
+"in", "cull", "lap" and "except" use array equality in the internal tests
+and cannot be used to manage collections of objects that are themselves
+representations of sets.
+
+.n Some_men := "Andy "Bill "Charlie "Dick "Tom "Ludwig "Zorro ;
+.n Some_women := "Anne "Betty "Carol "Diane "Edna "Mary "Theresa ;
+
+.n "Tom in Some_men Pals Friends
+
+.n Acquaintances Pals Friends except Some_women
+
+Some_women, as a set, was not part of Acquaintances Pals and Friends
+
+.n Acquaintances Pals Friends except Acquaintances Friends
+.p
+An alternative representation for a set is as a list of truth-values
+corresponding to the universe represented by a given list.
+
+.n People := sortup cull link Acquaintances Pals Friends Some_men Some_women
+
+The set of acquaintances would be represented by "oololoooooolooloooooo".
+
+.n Acquaintances
+
+.n oololoooooolooloooooo sublist People
+.p
+Equality of two sets is equality of the representations. Union and
+intersection are done by "or" and "and" respectively. To convert from a
+list form to a truth-value representation, the following operation is used:
+
+.n list_them is op Subset Universe {or ( Subset EACHLEFT match Universe )}
+
+.n List_Pals    := list_them Pals People
+.n List_Friends := list_them Friends People
+
+.n Pnames := List_Pals sublist People
+.n Fnames := List_Friends sublist People
+.p
+All the Pals and Friends
+.n List_Pals or List_Friends sublist People
+
+The Pal who is also a Friend
+.n List_Pals and List_Friends sublist People
+.p
+Set operations can be used when creating an index from a set of text.
+
+The operation "getfile" is used to read some text.
+
+.n Lines := getfile link Nialroot Os_Path_Separator 'tutorial' Os_Path_Separator 'textfile' ;
+
+The operation "post" shows the lines that were read.
+
+.n post Lines
+.p
+The operation "fixit" gets rid of punctuation symbols.
+
+.n fixit is op Str {Str except ',./<>?\|;:"''`~][{}=+-_)(*&^%$#@!'}
+
+The operation "wordit" returns a list of words in lower case AND with 
+the punctuation removed.
+
+.n wordit is op Data {link EACH (towords tolower fixit) Data}
+
+Applying the operation "wordit" to the list of strings that were
+read in using "gettext" results in the list of words, including
+ones that should be omitted and repeats.
+
+.n Words := wordit Lines
+.p
+There are some words that would be omitted from any index.
+
+.b Omit_words := "a "all "an "and "any "are "as "at "b "be "been "by
+                 "c "can "creating "e "each "from "gets "have "hers
+                 "his "in "is "its "n "of "or "our "p "q "r "rid "run
+                 "set "s "some "that "the "these "to "use "used
+.e               "were "when "which "with ;
+
+"make_index" removes the words not to be indexed and sorts the result.
+
+.n make_index is op Words Omits {sortup (cull Words except Omits)}
+.p
+"make_index" culls the words (removes duplicates), drops the ones in the
+omit list and then sorts the resulting list in ascending sequence.
+
+.n see "make_index
+
+.n Index_words := make_index Words Omit_words
+
+Using "putfile", the results are written to a file, one word per line.
+
+           putfile "index.dat (EACH string Index_words);
+.p
+The operation "indexit" combines the preceding steps.
+
+.b indexit is op File_in File_out Omits {
+      Lines := getfile File_in ;
+      Words := wordit Lines ;
+      Index_words := make_index Words Omits ;
+.e    putfile File_out (EACH string Index_words); }
+
+The following application of "indexit" to the file "moretext" creates a list
+of index words in the file "setindex". The words in "Omit_words"
+are excluded from the result.
+
+.b indexit 
+     (link Nialroot Os_Path_Separator 'tutorial' Os_Path_Separator 'moretext')
+.e     "setindex Omit_words;
+.p
+The lines of file moretext are:
+.n post getfile (link Nialroot Os_Path_Separator 'tutorial' Os_Path_Separator 'moretext')
+
+What did we get in the index?
+
+.n getfile "setindex
+.p
+.s set "sketch ; set "nodecor ;
+.s setformat '%g' ;
+There are three types of numeric data: boolean, integer and real.
+
+True and False are boolean values represented by l and o respectively.
+This choice of representation allows lists of booleans to be displayed
+compactly.
+
+.n l l o o True True False o
+
+Integers are whole numbers. They range in value from a low of -2147483648 
+to a high of 2147483647 in a 32-bit version of QNial or from a low of
+-9223372036854775808 to a high of 9223372036854775807 in a 64-bit version. 
+Negative numbers are shown with a minus sign at the front. If a space is placed 
+after the minus sign, then Q'Nial interprets the minus sign as the minus
+operation.
+
+.n 21 2147483647 -512 -2147483648 0 -0
+
+.n 25 - 20
+.p
+Real numbers are ones that have a decimal point. In Q'Nial, the real
+numbers can be displayed either with a specified number of digit positions
+after the decimal point or in a scientific notation with an exponent part.
+Thus 1,234,567.89 can be expressed in either of the two ways below:
+
+.n 1234567.89 1.23456789e6
+
+The display of a real number is controlled by the "setformat" operation.
+
+setformat '%g'
+
+is the default, which displays the number in fixed format unless its
+is too small or too big in size, and then it uses exponential notation.
+
+The format '%10.2f' can be used to display numbers in fixed format with two
+decimal places. It is useful when displaying money values.
+.p
+There are three literal types of atomic data: characters, phrases and faults.
+
+A single character is denoted with the grave mark (`).
+
+.n `X
+
+A phrase is denoted with the phrase mark (").
+
+.n "Accounting
+
+.n "apples
+.p
+A fault is denoted by the question mark (?).
+.s Trig := settrigger o;
+
+.n ??Too_many_widgets
+
+By convention a fault message text begins with a question mark to show that
+it represents a fault. This is achieved by putting ?? at the front.
+.s settrigger Trig ;
+
+A string is a list of characters. It is denoted by surrounding a sequence
+of characters by the single quote mark.
+
+.n 'a place in the sun'
+.p
+In the default output display mode (sketch, nodecor) it is difficult to
+distinguish between the literal types. Below we show the display for
+each combination of mode for the 3 atomic types and a string.
+
+.n set "sketch; set "nodecor; `X "Tom ??error 'apple pie'
+
+.n set "sketch; set "decor;   `X "Tom ??error 'apple pie'
+.p
+.n set "diagram;set "nodecor; `X "Tom ??error 'apple pie'
+
+.n set "diagram;set "decor;   `X "Tom ??error 'apple pie'
+.p
+The underscore character is considered to be a letter and can
+be used in a variable name or phrase to make a long name readable.
+
+.n Long_name := "A_really_long_phrase
+
+If a phrase is to include blanks, it is necessary to construct it
+using a string to show the blank locations.
+
+.n Blank_phrase := phrase 'with a blank'
+
+In the above example, the operation "phrase" is being used to create
+the phrase from a string. The operation "string" converts a phrase to a
+string. Either diagram mode or decor mode shows the difference between a
+phrase and a string.
+
+.n set "diagram ; set "nodecor ; Blank_phrase  (string Blank_phrase)
+.s 
+.n set "sketch; set "decor ; Blank_phrase (string Blank_phrase)
+.s set"nodecor;
+.p
+
+To insert an apostrophe in a string, use two apostrophes, side by side
+
+.n Company Software := 'Nial Systems Limited' 'Q''Nial'
+
+To insert an apostrophe in a phrase, just use one apostrophe.
+
+.n Company Software := (phrase 'Nial Systems Limited ') "Q'Nial
+
+To insert a phrase mark in a phrase, use the phrase operation.
+
+.n Decor_symbol := phrase '"decor'
+.p
+A bitstring is a list of Boolean truthvalues. When a list of truthvalues
+is displayed, it is normally shown as follows. Decor mode has no effect
+on a bitstring display.
+
+.n set "sketch;  lolllolo
+.n set "diagram; lolllolo
+.s set "sketch; set "nodecor;
+
+The operations and or and not can be applied to bitstrings as unary
+operations.
+
+.n and lolllolo
+
+.n or lolllolo
+
+.n not lolllolo
+.p
+When and and or are used infix on bitstrings, the anding or oring is
+done itemwise.
+
+.n lollolo and llollol
+.n lollolo or llollol
+.p
+Tables are two dimensional arrays. They can have any number of rows
+and columns. A table can be generated using "tell". Such a table
+shows the "address" or "row number" "column number" pair that is used to
+select items from a table.
+
+.n tell 5 5
+
+The addressing scheme starts with 0. Addresses for a list of 25 characters:
+
+.n tell 25
+.p
+Using an address, a particular value can be extracted using the operation
+"pick" or the "at" indexing notation.
+
+.n Table := 5 5 reshape 'abcdefghijklmnopqrstuvwxy';
+
+.n Table           (tell 5 5)
+
+.n 3 2 pick Table
+.n Table@(4 3)
+.p
+The operation "cart" creates a table by combining the items of its items
+in a systematic way. It generates all possible combinations for test data.
+
+.n Tests := ("TV "Computer "Radio "Telescope) cart ("Fix "Return "Reject)
+
+.n Tests @ (2 1)
+.p
+A table of booleans can be constructed. 
+
+.n TT := 5 5 reshape lllololllolooolololllolol;
+
+The operation sublist can be used to select based on a bit string.
+.n Table TT (TT sublist Table)
+
+.n EACH equal grid Table sublist Table
+
+The above expression selects the diagonal of Table.
+.p
+.s setformat '%8.2f'; set "sketch;
+                          Simple Operations
+
+We assign a variable A with a list of numbers and show some simple
+data operations on it.
+
+.n A gets 95 98 99 102 107
+.n first A 
+.n last A
+
+.n front A
+.n rest A
+
+The "rest of A" includes all but the first item of A; the "front of A" 
+is all but the last. An example of the use of these operations is in 
+computing the differences in the numbers.
+
+.n Differences := rest A - front A
+.p
+We generate the integers from 1 to 10 and assign them to B.
+
+.n B gets count 10
+
+There are four ways to combine two lists:
+.n A link B
+
+"link" makes a new list out of the items of A and B.
+
+.n A hitch B
+
+"hitch" puts A as an item at the start of a list followed by the items of B.
+.p
+.n A append B
+
+"append" places B as an item at the end of a list preceded by the items of A.
+
+.n A pair B
+
+"pair" makes a list of 2 items with A the first and B the second.
+.p
+The operation "reshape" produces an array with shape of the left
+argument made out of the items in the right argument.
+
+.n 2 3 reshape 55 (1 2 3) "Lucy 4.5 `a 'cat'
+
+.n Array := 2 3 2 8 reshape 'abcdefghijklmnopqrstuvwxyz'
+
+.n shape Array
+
+The items of the array are used cyclicly until the required shape is filled.
+.p
+For a list, the operation "take" is like "reshape" except that it fills
+with items that are the "type" of the first item of the array.
+
+.n 5 take 2 3 4
+
+.n 3 5 take (2 4 reshape 'abcdefgh')
+.p
+The operation "take" can be used to adjust data so it is all the same size.
+The use of a negative value in the first argument of take, means to
+take from the other end.
+
+.s set "sketch;
+
+.n Accounts := (15 take 'Travel') (15 take 'Entertainment')
+
+.n Amounts := (-12 take '$455.56') (-12 take '$3,456.78')
+
+.n mix pack Accounts Amounts
+.p
+Operations appearing in a sequence behave like an operation composition,
+they are applied in right to left order.
+
+.n A
+
+.n first rest A
+
+.n first rest rest A
+
+.n sum count 6
+.p
+"EACH" causes the operation to apply to each item of an array.
+"EACHRIGHT" and "EACHLEFT" are used to have the operation loop through the
+the items of the array on the right or left respectively. These
+transformers provide a very powerful looping capability.
+
+.b frequency IS OPERATION Values A {
+.e   EACH sum (Values EACHLEFT EACHRIGHT = A)}
+
+.n frequency 'aeiou' 'The boy stood on the burning deck.'
+
+In this example, frequency shows how many times each vowel occurs.
+
+.n frequency `3 (link EACH string count 100)
+
+There are 20 three's in the digits of the numbers from 1 to 100.
+.p
+.s set "sketch;
+The operation "take", used for display of reports and EACH or EACHRIGHT
+
+.n Accounts := 15 EACHRIGHT take 'Travel' 'Entertainment' 'Telephone'
+
+.n Amounts  := -12 EACHRIGHT take '$455.56' '$3,456.78' '$34.56'
+
+.n mix pack Accounts Amounts
+.p
+Getting Started with Q'Nial on a Fixed Disk IBM PC (DOS).
+
+
+Q'Nial is provided in an archived format that compresses the files.
+To use Q'Nial, the files must be removed from the archives and
+placed on the fixed disk.
+
+Step 1.  Extract the Q'Nial Files
+
+The ADD90.bat file is used to extract and copy the files onto the fixed disk.
+
+Batch File  Actions
+
+ADD90.BAT   Extract files from Diskette 90.  Place Diskette 90 in the A Drive.
+            With the default directory at the root for the fixed disk
+            (eg. C:\), type:
+
+            a:add90 <Return>
+
+
+Step 2.  Run Q'Nial.
+
+To run Q'Nial, change the default directory to v41root, run sample.bat,
+and then run nial.  Type:
+
+                  cd v41root <Enter>
+                  sample     <Enter>
+                  nial       <Enter>
+
+After a few seconds, initial.nbs is loaded and the Q'Nial Version and Copyright
+messages are displayed.  The messages clearws and profile loading appear and
+then the Q'Nial Tutorial screen is displayed.
+
+To change the background or text colors on the screen, change the values of
+the following variables:
+
+              __bgrd   which is initially equal to 1 representing Blue
+                       on a color terminal and reverse video on a monochrome
+                       one (used in: man "tally) ;
+
+              __text   which is initially equal to 4 representing White on
+                       a color terminal and "not underlined and not bold"
+                       on a monochrome display (used in: man "tally).
+
+              __cbck   initially equal to 10 representing Brightred on a
+                       a color terminal and "not underlined and not bold"
+                       on a monochrome display (used in: man "t).
+
+              __ctxt   initially equal to 12 representing Brightwhite on
+                       a color terminal and "not underlined and not bold"
+                       on a monochrome display (used in: man "t).
+
+If you would prefer a different colored background, type:
+
+              __bgrd := 6 ; man "link <Enter>
+
+and the background should become purple.  Each number from 0 to 15 has a color
+associated with it as follows:
+
+                Number  Color      Number  Color
+
+                   0    Black         8    Grey
+                   1    Blue          9    Bright Blue
+                   2    Red          10    Bright Red
+                   3    Yellow       11    Bright Yellow
+                   4    White        12    Bright White
+                   5    Light Blue   13    Sky Blue
+                   6    Purple       14    Mauve
+                   7    Green        15    Bright Green
+
+The code may vary on non-IBM PC computers or with different graphics cards.
+
+You give the color attribute to the variable by "assigning" a value.  This
+is done either with ":=" or with the word "gets" as in:
+
+         __text __bgrd gets 2 7 ; man "readscreen <Enter>
+
+Experiment with these colors until you are satisfied with them.
+
+On monochrome terminals, the three digits of the control tuple , which are
+coded in this program as (__text __bgrd 0) represent:
+
+       character type:
+                              0  normal
+                              1  underlined
+                              2  bold
+                              3  bold and underlined
+
+        reverse video state:
+                              0  not reverse video
+                              1  reverse video
+
+        blinking:
+                              0  not blinking
+                              1  blinking
+
+Thus the initial values of (4 1 0) for (__text __bgrd 0) represent normal
+display, reverse video, not blinking.
+
+To get help on "tell" type:
+
+                        man "tell <Enter>
+
+A window of twelve lines and fifty columns is created in the upper right
+corner of the screen.  An brief explanation of "tell" appears.  In the full
+version of Q'Nial, if you typed
+
+                         more <Return>
+
+after reading the help message, you would receive a full screen message
+providing more help on "tell".  The "more" option can be used again and
+again to see more help.  However, it is not provided in this evaluation copy.
+
+Type:
+
+                         count <Enter>
+
+the help message for "count" is displayed.
+
+Now that "count" and "tell" are known, you can try using them.  For a starter,
+display the addresses of an array having one axis and fifty items.  (That
+would be a list of fifty items.)  The expression is:
+
+                          tell 50 <Enter>
+
+Now you can experiment with "count".  It returns numbers that are one greater
+than the numbers produced by "tell".  Type:
+
+                           count 50 <Enter>
+
+Now see what the addresses are for a three dimensional table having 3 planes of
+tables of 3 by 3 numbers.  Type:
+
+                           tell 3 3 3 <Enter>
+
+After reviewing this result, type:
+
+                           tell 4 4 4 4 <Enter>
+
+Type the following operation definition:
+
+         mycalc is operation a b c x {a * x + b * x + c } <Enter>
+
+or, if you are more at home writing business applications, type:
+(the \ lets you continue the definition on the next line.)
+
+         mycalc is operation Hours Rate Deductions { \  <Enter>
+            Hours times Rate minus (sum Deductions) }   <Enter>
+
+Now, you wish to use this operation.  If you entered the first operation, then
+type:
+
+           Result := mycalc 2. 3. 4. (count 10) <Enter>
+
+If you entered the second one, type:
+
+           Result := mycalc 40. 50. (100. 200. 300.) <Enter>
+
+In either case, an interesting result should appear.  As with other Q'Nial
+operations, the operation is applied to an array and returns an array result.
+
+For further information, call Nial Systems at (613) 234-4188 or (800) 465-1798.
+
+The mailing address is:
+
+Nial Systems Limited
+155 Queen Street, Ninth Floor
+Ottawa  ON  K1P 5C9
+
+FAX: 613-563-9596
+
+We hope to hear from you.
+
+Bill Jenkins
+This is a short story about a cat and a dog. The
+cat was named Charlie. He was a black cat who
+lived in a haunted house.
+                           Q'Nial Teach Facility
+
+This program is provides a brief introduction to Nial concepts
+on a number of topics. From the main menu you can select a topic
+which leads to a sequence of screen presentations with text and
+examples.
+
+At the bottom of every screen, you will see a message indicating
+your options:
+
+If you press <Enter> or any other key, you continue with the next screen.
+
+If you press <b>, you will back up to the previous screen.
+
+If you press letter <n>, you will enter Q'Nial's break mode in which
+you can experiment using Nial expressions.  Type RESUME <Enter> to continue.
+
+If you press the letter <q>, the program quits this topic and displays
+the main menu. Then you may choose another topic or quit the TEACH demo.
+.p
+Q'Nial (pronounced cue-nee-yal) is the name of the program (an interpreter)
+that executes the Nested Interactive Array Language (Nial). It is an 
+interactive programming environment in which program fragments can
+be developed and tested. Nial uses nested arrays as data objects and the
+has nested syntactic constructs.
+
+Q'Nial was developed by Prof. Michael Jenkins of Queen's University,
+Kingston, Ontario. It is licensed on behalf of Queen's by Nial Systems
+Limited.
+
+The data objects of Q'Nial utilize a theory of array data structures
+developed by Dr. Trenchard More Jr., who has collaborated in the
+design of the language.
+.p
+The demonstration examples are being read from a "script" file
+and interpreted by Q'Nial as though they were being typed
+at the keyboard. The indented line is a statement to Q'Nial,
+and the following line is the response provided by Q'Nial.
+
+.n sum 3 5 21
+
+.s setformat '%g' ;
+Q'Nial is an interactive system. When an expression is typed in,
+it is evaluated and the response is displayed on the screen immediately.
+
+.n 3 + 4
+
+.n 7.1 times 4
+
+The result can be assigned to a name or identifier. A name used in this way
+is called a "variable".
+
+.n Pay := 40. times 15.35
+.p
+The keyword "gets" may be used in place of the double symbol " := " to mean
+"is assigned the value of".
+
+.n Pay gets 40.0 times 15.35
+
+The variable "Pay" is assigned the value of the expression "40. times 15.35".
+The value held by the variable is returned in response to the name.
+
+.n Pay
+
+Several assignments can be made in one expression. A semi-colon at the
+end of the expression means "Do not return the result to the screen".
+
+.n Hours Rate Deductions := 40.00 15.00 100.00;
+
+.n Rate
+.p
+The arithmetic symbols may be used in place of words as follows:
+.r
+     SYMBOL     WORDS                       MEANING
+.r
+       *        times, prod or product      multiply
+       /        div or divide               divide
+       +        plus or sum                 add
+       -        minus                       subtract
+.r
+
+.n  Net gets Hours times Rate minus Deductions
+.n  Net := Hours * Rate - Deductions
+
+.n  X := 3.;
+.n  Y := 7 * X * X + (4 * X) - 50
+
+Thus, depending on your style of programming, you can write expressions
+that are like english or like mathematical formulas.
+.p
+Q'Nial handles character data. A "string" is a list of characters.
+A string is specified by placing a single quote mark symbol at each end
+of the list.
+
+Here the letters of the alphabet are assigned to the name "alphabet".
+
+.n Alphabet := 'abcdefghijklmnopqrstuvwxyz'
+
+.n Vowels gets 'aeiou';
+
+In the second example, the semicolon at the end of the assignment
+supressed the display of the value assigned to the variable Vowels;
+however, the value 'aeiou' has been assigned to it as we can see:
+
+.n Vowels
+.p
+A single character of data is specified by using the grave ` symbol.
+Thus `X represents the atom X, `2 represents the character 2.
+
+.n One_char := `X
+
+A sequence of character representations is the same as a string
+.n  `a `b `c = 'abc'
+.p
+Another type of data handled by Q'Nial is called a "phrase". A phrase
+is denoted by a sequence of characters preceded by a double quote mark symbol.
+For example,
+
+.n "Trudeau
+
+The value of the phrase is an atomic array, similar to a string, containing
+the letters following the double quote mark.
+
+A phrase denotation ends at the first space or certain punctuation mark.
+
+.n Phrases := "Bill "Jane "October "Kingston
+
+A phrase can be created from any string, by applying the phrase operation
+to it.
+
+.n phrase 'apple pie'
+.p
+The last type of "literal" data is called the "fault". It is specified
+by placing a question mark in front of a sequence of characters. Most faults 
+are used as error messages. The system produces then when you do something 
+illegal.  In programming you may want to create a fault as an error message
+for an unexpected condition. 
+
+.s settrigger o
+.n ??error
+
+.n fault '?missing text'
+
+Normally, the creation of a fault triggers a program interrupt. The operation
+settrigger can be used to turn this behaviour off. It has been used to
+avoid interrupting this teaching program on the above examples.
+
+.p
+When arithmetic operations such as "sum" or "times" are applied to literal
+data, such as phrases or strings, the result is a fault, indicating a 
+specific type of error.
+
+.n Data := "Total (2 3 4 5)
+.n sum Data
+
+The result is a list of four faults ?A where ?A means arithmetic error.
+The Q'Nial interpreter determined that it cannot add numbers and a phrase
+and returned an indication. There are four results because it tried to
+to add each of the four numbers in the second item of "Data" to the phrase.
+.p
+In normal display mode, it is impossible to tell if a string of characters
+represents a string, phrase or fault. A mode of display called "decor"
+decorates the items displayed so that the type of data is visible.
+
+.n Some_data gets "words 'words' ?words
+
+.n set "decor; Some_data
+
+With "decor" mode set, the differences are easily seen. Normal mode
+is returned by the following expression:
+
+.n set "nodecor;
+.p
+Q'Nial handles lists and tables of numbers and characters.
+
+.n Numbers := 100 3 7 11 17 49 14 22 5
+
+The expression "R C reshape List" returns a table with "R" rows and "C"
+columns formed by building rows of items from the "List".
+
+.n Table := 3 4 reshape 23 34 45 26 34 25 47 56 12 66 95 64
+
+The "reshape" operation can be applied to character data too. For example,
+the "alphabet", defined earlier, can be reshaped into a table of 2 rows
+of 13 columns by the following operation:
+
+.n Characters := 2 13 reshape alphabet
+.p
+Different types of data may be mixed together in a list. The display of
+a list is put in the form of a box diagram unless all the items are
+atoms (numbers, phrases, or characters).
+
+Earlier in this presentation, values were assigned to identifiers named
+Phrases, Characters, Numbers and Vowels. These values can be made into
+a list by naming them one after the other. This list has four items,
+each of which has a number of items. The idea of a list of lists is
+a fundamental idea of nested arrays; ie. arrays within arrays.
+
+.n Longlist gets Phrases Characters Numbers Vowels
+.p
+Operations are applied to arrays to produce an array result.
+
+.n Data gets "word (2 3 4 5) 'letters'
+
+The operation "reverse" reverses the sequence of the items of a list.
+
+.n reverse Data
+.p
+The operation "post" makes a column of the items of the list.
+
+.n post Data
+
+.n Numbers
+
+The operation "sum" adds the items of a list.
+
+.n sum Numbers
+
+The operation "max" finds the largest number in the list.
+.p
+.n max Numbers
+
+The operation "min" finds the smallest number in the list.
+
+.n min Numbers
+
+The operation "sqrt" finds the square root of each number in the list.
+
+.n sqrt Numbers
+.p
+Transformers are used to modify the application of an operation.
+The transformer EACH makes an operation apply to each item of the array.
+
+.n Longlist
+
+.n EACH reverse Longlist
+
+This capability is explained by saying that (EACH reverse) is a new
+operation that applies reverse to the items of the argument array. In 
+Q'Nial terms, EACH is a transformer and (EACH reverse) is a transform.
+.p
+A "strand" is a list of items following one after the other with one
+or more spaces between each item. Lists formed in this way are said to
+be in "strand notation". The last item on the list shows that the
+7+2 is evaluated and the result of 9 displayed.
+
+.n 2 3 Vowels 3.75 (4 5 6) (7+2)
+
+For some circumstances, it is necessary to have a list that contains
+only one item. In this case, a "brackets notation" is used. In brackets
+notation, list items are separated by commas and the whole list is
+bounded by brackets.
+
+.n [2,3,Vowels,3.75,[4,5,6],(7+2)]
+
+.n A_single_item_list := ["Total]
+.p
+The brackets notation is used to specify an empty list. Such a list is
+sometimes used at the beginning of a program to specify the name of a
+list that will be built by "linking" items to the list. Linking an
+item to an empty list results in a list with one item. Linking an item to
+a list with one item returns a list with two items etc.
+
+.n Friends := []
+.n Friends := link Friends "Mary
+.n Friends := link Friends "Tom
+
+An empty list shows up in a list of several items as an empty box.
+
+.n "Tom 3 5 [] 7 9 "Mary
+.p
+The term "operation composition" means combining two operations into one.
+
+In operation composition, the right-most operation is applied to the
+data and then the next operation to the left is applied to the result.
+The expression "first rest 2 3 4" is read "the first of the rest of 2 3 4".
+Since the rest of 2 3 4 is 3 4 and the first of 3 4 is 3, the result is 3.
+
+.n first      2 3 4
+.n rest       2 3 4
+.n first rest 2 3 4
+.p
+A control construct called the "IF" construct provides for selecting
+different program segments to be executed. An example is shown below.
+
+Since 5 is greater than 4, the result is "hello".
+
+.b IF 5 > 4 THEN
+    'hello'
+   ELSE
+    'goodbye'
+.e ENDIF
+
+The "CASE", "FOR", "WHILE" and "REPEAT" control constructs are also
+available in Q'Nial. Examples are shown in the "Control" topic.
+.p
+Q'Nial is programmed by defining new operations to accomplish a desired
+task. For example, there is no predefined operation in Q'Nial to average
+a list of numbers. Such an operation is easily defined as follows:
+
+.b average IS OPERATION Numbers {
+      sum Numbers / tally Numbers }
+.e
+
+The keyword "IS" indicates that a definition is being made. The keyword
+OPERATION followed by "Number {" indicates that an operation with one
+parameter "Number" is being defined. The body of the operation definition
+is the expression "sum Numbers / tally Number" which computes the value
+of the operation from its argument.
+
+.n average 22. 14. 27.
+.p
+Some very simple operations can be defined directly as a composition. 
+For example, the operation second_last can be defined as
+
+.n second_last IS OPERATION A { first rest reverse A }
+
+or can be abbreviated to 
+
+.n second_last IS first rest reverse
+
+Operations are described as being "predefined" if they are an integral
+part of the Q'Nial interpreter, or as being "user defined" if they are
+defined in the manner above. Thus, "first", "rest", "reverse", "sum", 
+"div" and "tally" are predefined; "second_last" and "average" are user defined.
+.p
+The result returned when a definition is made is ?noexpr if the definition
+has no syntax (i.e. grammatical) errors. The ?noexpr is a special result
+which does not display. Thus, if the definition has no errors, no result
+is displayed.
+
+If errors are detected, an indication is returned.
+
+.n wrong_operation IS OPERATION Array {Month gets JANUARY; write Month Array}
+
+This is incorrect because the name "JANUARY" is not known to Q'Nial.
+
+.n right_operation IS OPERATION Array {Month gets 'January';write Month Array}
+.p
+An operation is "executed" by specifying the operation name followed by the
+array to which it is applied. The array is called the "argument" of the
+operation. In the following examples, the argument is always 2 3 4 5.
+
+.n rest 2 3 4 5
+.n right_operation 2 3 4 5
+.n second_last 2 3 4 5
+.p
+When determining what has happened when a user defined operation is
+executed, it is sometimes helpful to "see" the definition. The operation
+"see" takes the name of the operation in the form of a phrase or string
+as its argument.
+
+.n see "second_last
+
+.n see 'right_operation'
+.p
+.n Num := 7 8 9
+.n tally Num
+.n sum Num
+.n sum Num div tally Num
+
+.n see "average
+
+The above definition is read:
+average is an operation on a variable called Numbers in which
+the sum of Numbers is divided by the tally of Numbers.
+.p
+.n see "average
+.n Num
+.n average Num
+.n sum (7 8 9) div tally (7 8 9)
+
+When "average" is executed with "Num" as its argument, the value of
+"Num" is substituted in the formula in place of "Any_numbers" wherever
+"Any_numbers" occurs. The definition shows the form of the operation.
+In the definition, the word "Any_numbers" is used to show how the argument
+is used when "average" is applied to an argument.
+.p
+The word or words that follow the word "OPERATION" in an operation
+definition are called the arguments of the operation. They
+can be thought of as "place-holders", since they indicate where
+the actual values are placed when the operation is used.
+If an operation has three arguments, for example, the values provided
+when the operation is used must be in the right order.
+
+.b make_date IS OPERATION Month Day Year {
+      Mo := 3 take Month ;
+      Da := string Day ;
+      Yr := 2 drop string Year ;
+.e    link  Da Mo Yr }
+
+.n make_date 'August' 23 1987
+
+.n make_date 23 'August' 87
+
+The first example provides suitable parameters to the operation. The second
+example has the parameters in the wrong order and gets an incorrect result.
+.p
+Transformers can be "user-defined". The following is the definition of a
+transformer called "TWICE", which applies an operation twice in a row.
+
+.n TWICE IS TRANSFORMER any_operation (any_operation any_operation)
+
+.n rest       1 2 3 4 5
+.n rest rest  1 2 3 4 5
+.n TWICE rest 1 2 3 4 5
+
+Transformers may be applied to any operation, either a predefined
+one, such as "rest", or one defined in a session, such as "average".
+
+.n EACH rest    (1 2 3 4 5) (99 88 42 55 66) (5 4 3 2 1) (2 4 6 8 10)
+.n EACH average (1 2 3 4 5) (99 88 42 55 66) (5 4 3 2 1) (2 4 6 8 10)
+.p
+The list of operations in brackets notation is called an "atlas".
+.s fmt := setformat '%8.5f';
+.n [sin,cos,tan,sqrt] 1.21
+
+In the above example, each of the operations is applied to the
+argument 1.21 and the result is a list of the same length as the atlas.
+
+.s setformat fmt
+.p
+scanl is tr fn op start A { % requires identity element. ;
+  each (op x {
+    nonlocal start;
+    start := start fn x
+  }) A
+}
+# utility routines used in many applications
+
+Tab IS char 9;
+
+Newline IS char 10;
+
+Return IS char 13;
+
+Blank IS char 32 ;
+
+gradedown IS GRADE >=;
+
+allwhitespace IS OP Text { and (charrep Text <= charrep Blank) }
+
+# routine to drop blanks before and after a string of text
+
+dropblanks IS OPERATION Str {
+   Str := list Str;
+   Str := False find (`  match Str) drop Str;
+   Str1 := reverse Str;
+   Str1 := False find (`  match Str1) drop Str1;
+   reverse Str1 }
+
+# routine to see if array A is a subarray of any of the arrays in B
+
+subin is op A B { or (A EACHRIGHT allin B) }
+
+isdigitorslash IS OP D { D = `/ or (D >= `0 and (D <= `9)) }
+
+isdigit IS OP D { D >= `0 and (D <= `9) }
+
+hasnodigits IS op Str {
+  and EACH (not isdigit) Str }
+
+
+# Utility routine to double up quotes and add surrounding quotes.
+  This is used when a string with single quote needs to be
+  used by Nial or embedded in a string to be stored by SQL and
+  eventually executed by Nial.  Nial requires single quotes in a string
+  to be doubled up to be properly interpreted. SQL has the same convention.
+
+newquotefix IS OP Str {
+  IF not empty Str THEN
+    Strs := `' match Str cutall Str;
+    Strs := `' EACHRIGHT hitch Strs;
+    IF first Str = `' THEN
+       link `' (link Strs) `' 
+    ELSE
+       (link Strs) append `' 
+    ENDIF
+  ELSE
+    `' `'
+  ENDIF }
+
+# test that a string has visible content.
+
+hascontent IS op Str { or (charrep Str > 32) }
+
+
+# routine to find intersect of a lists of lists
+
+intersect IS OP A {
+   IF empty A THEN
+      Null
+   ELSE
+      R := first A;
+      A := rest A;
+      WHILE not empty A and not empty R DO
+        R := R EACHLEFT in sortup first A sublist R;
+        A := rest A;
+      ENDWHILE;
+      R
+   ENDIF }
+
+substrposns is op S1 Str {
+  Posns := first S1 findall Str;
+  Substrings gets Posns EACHLEFT + grid S1 EACHLEFT choose (Str link (tally S1 reshape ' '));
+  S1 EACHRIGHT = Substrings sublist Posns }
+
+# The lexical data for each message is a list of Nial strings holding key phrases. 
+  Rather than using the display/execute mechanism to store and retrieve the 
+  data from the database, we convert the list to a single comma-separated string using
+  the following routines to place and remove commas between the strings.
+
+Comma IS `, 
+
+CommaBlank IS ', '
+
+addcommas IS OP Strs { -2 drop link (Strs EACHLEFT link CommaBlank) }
+
+allblanks IS OP Str { and (Str match ` ) }
+
+removecommas IS OP Str {
+  IF not empty Str and not allblanks Str THEN 
+     Pieces :=  Comma match Str cut Str;
+     EACH dropblanks Pieces
+  ELSE
+     Null
+  ENDIF }
+
+removewhitespace IS OP Text {
+   Text#(Text match Return sublist grid Text) := Blank;
+   Whitespace := or (Text EACHRIGHT match Blank Tab Newline);
+   Adjacent := and [front,rest] Whitespace append o;
+   not Adjacent sublist Text }
+
+
+# routine to do conversion of a Nial timestamp to an SQL date field
+  in the same order as an SQL date field.
+
+Convert_timestamp IS {
+   Months := 'Jan' 'Feb' 'Mar' 'Apr' 'May' 'Jun'
+          'Jul' 'Aug' 'Sep' 'Oct' 'Nov' 'Dec';
+   Str := Timestamp;
+   Pattern := Str EACHLEFT in ', ';
+   Parts := Pattern cut Str;
+   Mth := 3 take Parts@1;
+   Posn := Mth find Months;
+   MM := -2 take ('0' link string (Posn + 1));
+   DD := -2 take ('0' link Parts@2);
+   link Parts@4 '-' MM '-' DD ' ' Parts@3
+  }
+
+
+HttpDate_to_SQLDate IS OP Str {
+   Months := 'Jan' 'Feb' 'Mar' 'Apr' 'May' 'Jun'
+          'Jul' 'Aug' 'Sep' 'Oct' 'Nov' 'Dec';
+   Pattern := Str EACHLEFT in ', ';
+   Parts := Pattern cut Str;
+   Day Month YYYY HMS := front (rest Parts);
+   Mth := Month find Months + 1; 
+   MM := -2 take ('0' link string Mth);
+   DD := -2 take ('0' link Day);
+   link YYYY '-' MM '-' DD ' ' HMS
+  }
+
+#SQLDate_to_Oracle IS OP Str {
+    YYYY MM DD HH Mi SS := looolloll
+
+
+# utility routines for playing with dates and times.
+
+isleapyear is OP Year {
+  IF Year mod 4 = 0 THEN
+    IF Year mod 100 = 0 THEN
+      IF Year mod 400 = 0 THEN
+        l
+      ELSE
+        o
+      ENDIF
+    ElSE
+      l
+    ENDIF
+  ELSE
+    o
+  ENDIF }
+
+
+# days since Jan 1, 1980
+
+daysafter is op Yr Mo Dy {
+   Dysmo := 31 28 31 30 31 30 31 31 30 31 30 31;
+   Yrs := Yr - 1980;
+   Fullyrdays := Yrs * 365;
+   Noleapdays := sum EACH isleapyear (1980 + tell Yrs) +
+           (isleapyear Yr and ((Mo > 2) or (Mo = 2 and (Dy = 29))));
+   Daysthisyear := sum (Mo - 1 take Dysmo) + Dy - 1;
+   Fullyrdays + noleapdays + Daysthisyear }
+
+daysbetween is OP Date1 Date2 {
+  daysafter Date2 - daysafter Date1 }
+
+
+# routine to compute the difference in minutes between two 
+  SQL date/time fields. The first one is assumed to be later.
+
+minutes_between IS OP SQLDate1 SQLDate2 {
+   Yr1 Mth1 Day1 Hr1 Min1 Sec1 := EACH tonumber (SQLDate1 EACHLEFT in '-: ' cut SQLDate1);
+   Yr2 Mth2 Day2 Hr2 Min2 Sec2 := EACH tonumber (SQLDate2 EACHLEFT in '-: ' cut SQLDate2);
+   Sec1 Sec2 := floor (Sec1 Sec2 + 0.5);
+   Days := Yr2 Mth2 Day2 daysbetween Yr1 Mth1 Day1;
+   IF Hr1 < Hr2 THEN
+      Days := Days - 1;
+      Hrs := 24 + Hr1 - Hr2;
+   ELSE
+      Hrs := Hr1 - Hr2;
+   ENDIF;
+   IF Min1 < Min2 THEN
+      Hrs := Hrs - 1;
+      Mins := 60 + Min1 - Min2;
+   ELSE
+      Mins := Min1 - Min2;
+   ENDIF;
+   IF Sec1 - Sec2 < -30 THEN
+     Mins := Mins - 1;
+   ELSEIF Sec1 - Sec2 > 30 THEN
+     Mins := Mins + 1;
+   ENDIF;
+   ((Days * 24) + Hrs) * 60 + Mins
+  }
+
+is_after IS OP Date1 Date2 {
+   Date1 minutes_between Date2 > 0 }
+
+
+# utility for tracing path through code
+
+Trace is External variable;
+
+addtopath IS OP Str (
+   Trace := Trace append Str; )
+#
+Operation: round Number
+File: round.ndf
+
+# This operation rounds a real to an integer.
+
+round IS OPERATION A {
+   floor ( A + .5 ) }
+
+# Examples:
+
+#
+     round 3.6
+4
+     round -1.66667
+-2
+     round 3.3 3.4 3.49 3.5 3.51 3.99
+3 3 3 4 4 4#
+Operations: findstring Substr Str
+            findstrings Substr Str
+File: findstring.ndf
+
+# Findstring is an operation that compares two strings to see if one is
+  contained in the other.  Substr is a string.  If Substr is in Str, True
+  is returned.
+
+findstring IS OPERATION Substr Str {
+   Position := first Substr findall Str ;
+   Substr in ( tally Substr EACHRIGHT take ( Position EACHLEFT drop Str ) ) }
+
+# Findstrings is an operation that compares a group of strings to see if any
+  of them is contained in another string. Substrs is a list of strings. If any
+  string in Substrs is in Str, True is returned.
+
+findstrings IS OPERATION Substrs Str {
+  or (Substrs EACHLEFT findstring Str) }
+
+
+# Example:
+#        'the' findstring 'Is that their cat?'
+l
+
+
+#       ['the','and'] EACHRIGHT findstrings ['There is a way','and you have','it']
+olo
+
+#
+File: insert.ndf
+Operation: inbefore Values List Index
+Operation: inafter Values List Index
+Operation: inserthere Values List Indices
+Operation: ininterval Values List Interval_width
+
+# This file contains insertion operations.
+  Inbefore places the list of values before the item with a specified index in
+  the given list.
+.
+  Inafter places the list of values after the item with a specified index in
+  the given list.
+.
+  Inserthere places the list of values after each of the items of List having
+  the indices specified in Indexlist.
+.
+  Ininterval places the list of values after each interval of a list of a given
+  width.
+
+inafter IS OPERATION Values Lst Index {
+   link ( Index + 1 take Lst ) Values ( Index + 1 drop Lst ) }
+
+inbefore IS OPERATION Values Lst Index {
+   link ( Index take Lst ) Values ( Index drop Lst ) }
+
+inserthere IS OPERATION Values Lst Indexlist {
+   Frontparts := 0 hitch front Indexlist EACHBOTH drop ( Indexlist EACHLEFT
+   take Lst ) ;
+   Lastpart := last Indexlist drop Lst ;
+   link ( link ( Frontparts EACHLEFT link Values ) ) Lastpart }
+
+ininterval IS OPERATION Values Lst Interval {
+   Indexlist := Interval * count floor ( tally Lst / Interval ) ;
+   inserthere Values Lst Indexlist }
+
+# Examples:
+
+#        inbefore (2 3) (1 4 5) 1
+1 2 3 4 5
+
+#        inafter 'bad ' 'The cat.' 3
+The bad cat.
+
+#        inserthere ' - ' 'hellooutthere' (5 8)
+hello - out - there
+
+#        ininterval ' - ' 'aabbccddee' 2
+aa - bb - cc - dd - ee -
+#
+Operation: select Paths A
+File: select.ndf
+
+# This operation selects arrays nested within A using the paths given by Paths.
+  The result has the same shape as Paths. 
+
+select IS OPERATION Paths A {
+   Paths EACHLEFT reach A }
+
+# Example:
+
+#        [1 2,1] [1 1] select count 4 5
++-+---+
+|3|2 2|
++-+---+
+# ----------------------- Unicode/UTF-8 operations ------------
+
+library "radix;
+
+
+# Convert single unicode value to utf8 format
+
+utf8_1 is op c {
+  res := '';
+  if c < 128 then
+    % ascii char;
+    res := char c;
+  elseif c < 2048 then
+    % 2 byte encoding;
+    res := char (((c quotient 64 1) bit_and 31 63) bit_or 192 128);
+  elseif c < 65536 then
+    % 3 byte encodi4ng;
+    c1 := c quotient 4096 64 1;
+    c2 := c1 bit_and 15 63 63;
+    c3 := c2 bit_or 224 128 128;
+    res := char c3;
+  else
+    % 4 byte encoding;
+    c1 := c quotient 262144 4096 64 1;
+    c2 := c1 bit_and 7 63 63 63;
+    c3 := c2 bit_or  240 128 128 128;
+    res := char c3;
+  endif;
+  res
+  }
+
+
+# Convert unicode (atomic or array) to utf-8
+
+utf8 is op v {
+  if atomic v then utf8_1 v else link each utf8_1 v endif
+}
+
+
+# Convert a single utf8 sequence into a unicode integer
+# Trailing bytes are to be included in the output. 
+
+utf8_rep1 is op bseq {
+  if 240 <= first bseq then
+    % 4 byte sequence;
+    us rst := [4 take, 4 drop] bseq;
+    ucode := (+ ((us bit_xor 240 128 128 128) * 262144 4096 64 1));
+    ucode hitch rst
+  elseif 224 <= first bseq then
+    % 3 byte unicode sequence;
+    us rst := [3 take, 3 drop] bseq;
+    ucode := (+ ((us bit_xor 224 128 128) * 4096 64 1));
+    ucode hitch rst
+  elseif 192 < first bseq then
+    % 2 byte sequence;
+    us rst := [2 take, 2 drop] bseq;
+    ucode := (+ ((us bit_xor 192 128) * 64 1));
+    ucode hitch rst
+  else
+    % ascii char;
+    bseq
+  end
+}
+
+  
+# Convert utf8 to unicode
+# This uses the fact that the first byte  of a UTF-8 sequence is
+# greater than 192
+
+utf8rep is op s {
+  bs := byterep s;
+  bsv := (191 < bs) cutall bs;     % Split into sequences;
+  link each  utf8_rep1 bsv 
+}
+
+
+# hex string to unicode and then to utf8
+
+hexstr_to_utf8 is op c (utf8 _hex c);
+
+
+#
+Operation: dropfront Item A
+Operation: dropback Item A
+Operation: dropboth Item A
+File: dropfront.ndf
+
+# dropfront drops leading occurrences of an item from an array.  
+  If the array is a multivalent one, the result is a list.
+  dropback drops all trailing occurrences of an item from an array.
+  dropboth comines the actions to drop leading and trailing items.
+
+dropfront IS OPERATION Item A {
+   A := list A;
+   False find (Item EACHRIGHT = A) drop A }
+
+dropback IS OPERATION Item A {
+   reverse (Item dropfront reverse A ) }
+
+dropboth IS OPERATION Item A {
+    dropback Item (dropfront Item A) }
+
+# Examples:
+
+#        dropfront `. '... and so on ...'
+ and so on ...
+         dropback  `. '... and so on ...'
+... and so on
+         dropboth  `. '... and so on ...'
+ and so on
+#
+Operation: finddefs Directory Report
+File: finddefs.ndf
+
+
+#
+Finddefs looks for definition files (*.ndf) and documents the defined names
+in each such file in a given directory. Only the top level definitions are found.
+Local definitions within a block are not documented. The operation returns a list
+of pairs: the first item of each pair is a definition file name, the second is the 
+list of the defined names within that file.
+
+
+
+library "filelist
+
+
+finddefs IS OPERATION Dir {
+   Dir := string Dir ;
+   Names := filelist1 link Dir Os_Path_Separator '*.ndf';
+   Entries := Null;
+   FOR File WITH Names DO
+      % Get the lines of the file;
+      Lines := getfile File ;
+      % Find the records that contain IS as the second item ;
+      Defn_names := Null ;
+      For Line WITH Lines DO
+         Words := ` match Line cut Line ;
+         IF tally Words >= 2 THEN
+            IF toupper second Words = 'IS' THEN
+               Defn_names := Defn_names append first Words ;
+            ENDIF ;
+         ENDIF ;
+      ENDFOR ;
+      Entries := Entries append File Defn_names ; 
+   ENDFOR ;
+   Entries }
+
+
+
+# Example:
+
+#        finddefs './niallib'
+# solve_linear_eqns A B
+
+# Routines associated with solving linear equations
+	The linear algebra primitives are:
+		solve
+		inverse        (inv)
+		innerproduct   (ip)
+
+
+# The operation solve uses Gaussian Elimination for
+  solving the system of linear equations
+            Ax = b
+  
+
+# Examples:
+
+#    A gets 2 2 reshape 1. 0. 0. 1.;  
+     B gets 3. 4.; 
+     A solve B
+
+matrixmult IS innerproduct
+
+hilbert IS OPERATION N {
+  recip (tell N  OUTER + tell N + 1) }
+
+vnorm IS OPERATION X {
+  max abs X }
+
+mnorm IS OPERATION A {
+  max EACH sum rows abs A }
+
+reldiff IS OPERATION X Y {
+  vnorm (X - Y) / vnorm X }
+
+residuals IS OPERATION A B X {
+  vnorm (A matrixmult X - B) }
+
+# M is a series of integers, eg. count 10. Test runs solve on a random
+  N by N matrix with N taking on the values of (abs M). It returns a list 
+  of pairs where the first item of each pair is abs N and the second is 
+  the elapsed CPU time spent in solving the set of equations.
+
+#
+test is op M {
+   Fmt := setformat '%5.2f' ;
+   Res := Null ;
+   FOR N WITH abs M DO
+      a gets random n n ;
+      b gets a inner[+,*] count n;
+      T1 := Time ;
+      a solve b ;
+      T2 := Time ;
+      Res := Res append ( N (T2 - T1) );
+   ENDFOR ;
+   write mix Res ;
+   setformat Fmt ;
+   Res }
+
+# Test1 displays the results of the other functions.
+
+#
+test1 is op N {
+  Fmt := setformat '%g' ;
+  A := random N N ;
+  B gets A inner[+,*] count N ;
+  X := A solve B ;
+  H := ((hilbert N) ) ;
+  V := ((EACH vnorm cols A) ) ;
+  M := ((mnorm A) ) ;
+  D := ((reldiff X (count N) ) ) ;
+  R := ((residuals A B X ) ) ;
+  ITERATE write
+  ('hilbert    ') H
+  ('vnorm      ') V
+  ('mnorm      ') M
+  ('solve AX=B ') X
+  ('reldiff    ') D
+  ('residuals  ') R ;
+  setformat Fmt ; }
+
+#
+Operation: shiftpad Position Array Pad_item
+File: shiftpad.ndf
+
+# Rotate items a specified number of positions to the left, replacing emptied
+  positions with a specified item.  The result is the shape of Array.
+
+shiftpad IS OPERATION Position Array Pad {
+   shape Array reshape ( opposite tally Array take
+     ( Array link ( Position reshape single Pad ) ) ) }
+
+# Examples:
+
+#        shiftpad 3 'abcdef' `*
+def***
+
+#        shiftpad 1 (1 2 3) 0
+2 3 0
+
+#
+     shiftpad 3 (count 4 5) (0 0)
++---+---+---+---+---+
+|1 4|1 5|2 1|2 2|2 3|
++---+---+---+---+---+
+|2 4|2 5|3 1|3 2|3 3|
++---+---+---+---+---+
+|3 4|3 5|4 1|4 2|4 3|
++---+---+---+---+---+
+|4 4|4 5|0 0|0 0|0 0|
++---+---+---+---+---+#
+Operation: money Number [Minimum field width]
+File: money.ndf
+
+# Money returns a string with the input number formatted into dollars and cents.
+  The optional second argument specifies the minimum length of the string.
+  Negative numbers are returned with enclosing parenthesis.  An invalid
+  argument, or one with absolute value greater than 1,000,000,000,000 returns
+  the fault ?money.
+
+money IS OPERATION Amount {
+   Moneysign Moneydecimal Moneyseparator := '$.,' ;
+   IF tally Amount = 2 THEN
+      Amt Size := Amount ;
+   ELSE
+      Amt Size := Amount 0 ;
+   ENDIF ;
+   IF ( isinteger Amt or isreal Amt ) and ( abs Amt < 1.e13 ) THEN
+      Mode := setformat '%15.2f' ;
+      Digits := link sketch ( abs Amt * 1. ) ;
+      Result := Moneydecimal hitch ( -2 take Digits ) ;
+      Dollars := -3 drop Digits ;
+      Dollars := not ( Dollars match `  ) sublist Dollars ;
+      WHILE tally Dollars > 3 DO
+         Result := link Moneyseparator ( -3 take Dollars ) Result ;
+         Dollars := -3 drop Dollars ;
+      ENDWHILE ;
+      Result := link Moneysign Dollars Result ;
+      IF Amt < 0. THEN
+         Result := link '(' Result ')' ;
+      ENDIF ;
+      IF ( tally Result < Size ) THEN
+         Result := Size - tally Result reshape ' ' link Result ;
+      ENDIF ;
+      setformat Mode ;
+      Result
+   ELSE
+      fault '?money'
+   ENDIF }
+
+# Examples:
+
+# (4 dollars,  minimum field width of 10)
+         money 4 10   
+     $4.00
+
+#        money -49999.98
+($49,999.98)
+# This is a set of operations to manage a simple
+database stored using the direct access files
+of Q'Nial.  It can manage any number of databases,
+but only one can be open at a time.  It uses the
+following global variables to store the database
+information in the workspace while the database is
+open.
+
+Fieldnames is external variable
+
+Keys is external variable
+
+Indices is external variable
+
+slots is external variable
+
+Db_fnm is external variable
+
+create_db is operation dbname fieldnames {
+   Db_fnm := open Dbname "d ;
+   IF isfault Db_fnm THEN
+      Db_fnm
+   ELSEIF filetally Db_fnm ~= 0 THEN
+      fault '?database already exists';
+   ELSE
+      writearray Db_fnm [0,1,2,3] [Fieldnames,Null,Null,Null];
+      close Db_fnm;
+      Truth
+    ENDIF }
+
+open_db is operation Dbname {
+   NONLOCAL Fieldnames Keys Indices Slots Db_fnm ;
+   Db_fnm := open Dbname "d ;
+   IF isfault Db_fnm THEN
+      Db_fnm
+   ELSE
+      Fieldnames Keys Indices Slots := readarray Db_fnm [0,1,2,3] ;
+       Truth
+   ENDIF }
+
+close_db is {
+   writearray Db_fnm [0,1,2,3] [Fieldnames,Keys,Indices,Slots];
+   close Db_fnm;
+   EACH erase "Fieldnames "Keys "Indices "Slots "Db_fnm; }
+
+get_field is operation key fieldname {
+   Test Posn := Key seek Keys;
+   IF Test THEN
+      Index := Indices @ Posn;
+      Test fieldposn := Fieldname seek Fieldnames;
+      IF Test THEN
+         readarray Db_fnm (Index + Fieldposn)
+      ELSE
+         fault '?incorrect field name'
+      ENDIF
+   ELSE
+      fault '?key not found'
+   ENDIF }
+
+put_field is operation key fieldname fieldvalue {
+   Test Posn := key seek keys ;
+   IF Test THEN
+      Index := Indices @ posn;
+      Test Fieldposn := fieldname seek fieldnames;
+      IF test THEN
+         writearray Db_fnm (Index + Fieldposn) Fieldvalue ;
+      ELSE
+         fault '?incorrect field name'
+      ENDIF
+   ELSE
+      fault '?key not found'
+   ENDIF }
+
+get_record is operation Key {
+   Test posn := Key seek Keys;
+IF Test THEN
+      Index := Indices @ Posn ;
+      readarray Db_fnm (Index + EACH first (grid fieldnames))
+   ELSE
+      fault '?key not found'
+   ENDIF }
+
+add_record is operation key fields {
+   nonlocal keys indices slots ;
+   test posn := key seek keys ;
+   if test then
+      fault '?key already exists'
+   else
+      if empty slots then
+         index := filetally db_fnm;
+      else
+         index slots := [first,rest] slots ;
+      endif ;
+    keys gets keys append key;
+    indices gets indices append index;
+    writearray Db_fnm (index + EACH first (grid fields))(fields);
+    Truth
+   ENDIF }
+
+put_record is operation key fields {
+   test posn := key seek keys;
+   if test then
+      writearray Db_fnm (indices@posn + EACH first (grid fields)) Fields ;
+      Truth
+   else
+      add_record key fields
+   endif}
+
+delete_record is operation Key {
+   nonlocal Keys indices slots ;
+   test posn := key seek keys;
+   If test then
+      index := indices @ posn;
+      writearray Db_fnm (Index + EACH first (grid Fieldnames))
+         (tally Fieldnames reshape single '');
+      slots := slots append index;
+      pattern := not (posn match EACH first (grid keys));
+      keys := pattern sublist keys;
+      indices := pattern sublist indices;
+      Truth
+   else fault '?key not found' endif}
+
+# script that tests the database functionality. It creates the database "friends" 
+  in the local directory.
+#
+create_db "friends ["name,"phone,"city];
+open_db "friends; 
+add_record "Henry ['Henry Meyer','613-542-2222','Kingston'];
+add_record "Wendell ['Wendell Smith','623-888-7777','Ottawa'];
+close_db; 
+open_db "friends; 
+A gets get_record "Henry; 
+write "Henry A; 
+close_db; 
+
+#
+Operation: median Numbers
+File: median.ndf
+
+# Median returns the median in a given list of numbers.
+
+median IS OPERATION Numbers {
+   tally Numbers quotient 2 pick ( SORT <= Numbers ) }
+
+# Example:
+
+#        median 5 3 1 4 2
+3
+#
+Operation: newhost Command
+File: newhost.ndf
+
+# This is an alternative for the operation host.
+# The difference is that the
+# results of the command are returned as an array of
+# strings.  It uses pipes and is efficient.
+
+# The result is a list of the lines produced by the command.
+  If you wish them to be displayed use:
+       ITERATE write newhost Cmd
+
+
+newhost IS OPERATION Cmd { 
+       Svt := settrigger o;
+       Fh := open Cmd 'pr' ; 
+       IF not isfault Fh THEN 
+          Res := Null ; 
+          WHILE not isfault ( Line := readfile Fh ) DO 
+             Res := Res append Line ; 
+          ENDWHILE ; 
+          close Fh ; 
+          settrigger Svt ; 
+          Res
+       ELSE 
+          settrigger Svt ; 
+          fault ( link '?Failed to open pipe to: ' Cmd ) 
+       ENDIF 
+    } 
+
+# example that displays the Nial definition files in the current directory
+     newhost 'ls *.ndf'
+
+# teach.ndf
+
+# This program drives a number of example texts that are stored in *.dat
+files within the tutorial directory.
+
+Demoinfo := [
+"TOPIC "NAME,
+"----- "----,
+"Introduction "intro,
+"Data "data,
+(phrase 'Easy Operations') "ops,
+"Arithmetic "arith,
+"Syntax "syntax,
+(phrase 'Control Structures') "control,
+"Pervasive "pervasive,
+(phrase 'APL-like Operations') "apl,
+(phrase 'LISP-like Features') "lisp,
+(phrase 'Set Operations') "set,
+(phrase 'Artificial Intelligence') "ai,
+(phrase 'Host System Interface') "system,
+(phrase 'File Operations') "file,
+"Quit "quit];
+
+
+library "towords;
+
+# definitions used by ai.dat
+
+Animalfacts := ["cow "goat "cat "horse "dog,["brown (phrase 'gives milk'),(
+phrase 'gives milk') "white,"black "unlucky,"black (phrase '
+carries a rider'),"brown (phrase 'wags tail') (phrase 'pulls
+ a sled')]];
+
+add_assoc IS OPERATION Alist Association {
+      Symbol Val := Association ;
+      IF ischar first Val THEN
+         Val := phrase Val ;
+      ENDIF ;
+      Test Pos := seek Symbol ( first Alist ) ;
+      IF Test THEN
+         % Add this association to the list for the item matched.;
+         Values := Pos pick second Alist ;
+         IF Val notin Values THEN
+            Alist @ @ ( 1 Pos ) := Values append Val ;
+         ENDIF ;
+      ELSE
+         % This is a new item for the list.  Add it to the list.;
+         Alist := Alist EACHBOTH append Symbol [ Val ] ;
+      ENDIF ;
+      Alist }
+
+has_assoc IS OPERATION Alist Assoc {
+      Symbol Val := Assoc ;
+      IF ischar first Val THEN
+         Val := phrase Val ;
+      ENDIF ;
+      Test Pos := seek Symbol ( first Alist ) ;
+      IF Test THEN
+         %   Display the association list;
+         Val in ( Pos pick second Alist )
+      ELSE
+         o
+      ENDIF }
+
+lookup IS OPERATION Alist Symbol {
+      Test Pos := seek Symbol ( first Alist ) ;
+      IF Test THEN
+         Pos pick second Alist
+      ELSE
+         ??notfound
+      ENDIF }
+
+remove_assoc IS OPERATION Alist Assoc {
+      Symbol Val := Assoc ;
+      IF ischar first Val THEN
+         Val := phrase Val ;
+      ENDIF ;
+      Test Pos := seek Symbol ( first Alist ) ;
+      IF Test THEN
+         % Drop the association from the list of associated items;
+         Values := Pos pick second Alist ;
+         Alist @ @ ( 1 Pos ) := Values except Val ;
+      ENDIF ;
+      Alist }
+
+Start_assoc IS {
+      ( phrase '') ( phrase '') }
+
+sortdown IS SORT >=;
+
+# utility routine
+
+fixquotes IS OP Str {
+  IF not empty Str THEN
+    Strs := `' match Str cutall Str;
+    Strs := `' EACHRIGHT hitch Strs;
+    IF first Str = `' THEN
+       link `' (link Strs) `' 
+    ELSE
+       (link Strs) append `' 
+    ENDIF
+  ELSE
+    `' `'
+  ENDIF }
+
+
+# routine to process the lesson files one line at a time.
+
+process IS OPERATION __Lines {
+      __Done := o ;
+      __I := 0;
+      WHILE not __Done and (__I < tally __Lines) DO
+         __Nextline := __Lines@__I ;
+         __I := __I + 1;
+         IF tally __Nextline = 0 THEN
+            writescreen ' ' ;
+         ELSE
+            IF first __Nextline = `. THEN
+               __Expart := 2 drop __Nextline ;
+               CASE second __Nextline FROM
+                     `r :
+                        writescreen __Expart ;
+                        END
+                     `n :
+                        writescreen link '   ' __Expart ;
+                        IF `' in __Expart THEN 
+                          __R := execute execute fixquotes __Expart;
+                        ELSE
+                          __R := execute __Expart ;
+                        ENDIF;
+                        IF __R ~= ??noexpr THEN
+                           write __R ;
+                        ENDIF ;
+                        END
+                     `b :
+                        writescreen link '    ' __Expart ;
+                        REPEAT
+                           __Nextline := __Lines@__I;
+                           __I := __I + 1;
+                           __Expart := link __Expart ' ' ( 2 drop __Nextline ) ;
+                           writescreen link '    ' ( 2 drop __Nextline ) ;
+                        UNTIL 2 take __Nextline = '.e'
+                        ENDREPEAT ;
+                        R := execute __Expart ;
+                        IF R ~= ??noexpr THEN
+                           write R ;
+                        ENDIF ;
+                        END
+                     `c :
+                        writescreen link ( 78 - tally __Expart quotient 2 reshape
+ ' ' ) __Expart ;
+                        END
+                     `s :
+                        execute __Expart ;
+                        END
+                     `p :
+                        writescreen ' ' ;
+                        R := readscreen
+ 'Press <Enter> to continue, <b> to backup, <n> for nial, <q> to quit: ' ;
+                        IF first R in 'qQ' THEN
+                           __Done := l ;
+                        ELSEIF first R in 'nN' THEN
+                             Writescreen null;
+                             Writescreen 'Enter some NIAL code and press enter';
+                             Writescreen '(Press Enter with no text to continue)';
+                             REPEAT 
+                               code := Readscreen '    >';
+                               IF not empty code THEN
+                                 res := execute code;
+                                 writescreen picture res;
+                               ENDIF;
+                             UNTIL
+				 empty code
+                             ENDREPEAT;
+                        ELSEIF first R in 'bB' THEN
+                           % get back to beginning of this page;
+                           __I := __I - 1; 
+                           WHILE 2 take __Lines@(__I - 1) ~= '.p' DO 
+                              __I := __I - 1; 
+                              IF __I < 0 THEN __I := 0; EXIT 0 ENDIF; 
+                           ENDWHILE;
+                           % get back to beginning of previous page;
+                           __I := __I - 1; 
+                           IF __I > 0 THEN
+                              WHILE 2 take __Lines@(__I - 1) ~= '.p' DO 
+                                 __I := __I - 1; 
+                                 IF __I < 0 THEN __I := 0; EXIT 0 ENDIF; 
+                              ENDWHILE;
+                           ENDIF;
+                        ENDIF ;
+                        END
+                     `q :
+                        __Done := l ;
+                        END
+               ENDCASE ;
+            ELSE
+               writescreen __Nextline;
+            ENDIF ;
+         ENDIF ;
+      ENDWHILE ;
+      }
+
+#Main menu driver for the teaching program
+
+Teach IS {
+      settrigger o ;
+      Again := l ;
+      Mode := set "sketch ;
+      WHILE Again DO
+         set "sketch ;
+         set "nodecor ;
+         EACH write ['Q''Nial EXAMPLES', ' ', ( mix Demoinfo ), ' '] ;
+         Filename := phrase tolower readscreen
+ 'ENTER the name of the desired demonstration and press <RETURN> : ' ;
+         write link ['You entered: ', string Filename];
+         IF ( Filename in "quit "q "QUIT "Q ) THEN
+            Again := o ;
+         ELSEIF Filename in EACH second Demoinfo THEN
+            Filepath := link NialRoot Os_Path_Separator 'tutorial' Os_Path_Separator (string Filename) '.dat';
+            Lines := getfile Filepath;
+            IF isfault Lines THEN
+               write link ' *** ' ( sketch Filename ) ' not found ***' ;
+               readscreen ' Press <Enter> to choose again. ' ;
+            ELSE
+               process Lines ;
+            ENDIF ;
+         ELSE
+            readscreen 'Unknown demo name.  Press <Enter> to choose again. ';
+         ENDIF ;
+      ENDWHILE ;
+      set Mode ;
+      }
+
+
+Latent is Teach
+
+
+Latent
+
+#
+Operation: tostring Array_list
+File: tostring.ndf
+
+# Tostring converts a list of items to a string with each item separated by one
+  blank.
+
+tostring IS OPERATION A {
+   front link ( EACH string ( list A ) EACHLEFT link ' ' ) }
+
+# Examples:
+
+#        
+set "decor ; tostring "See "Spot "Run
+'See Spot Run'
+
+#
+        tostring "See "the 3 "Dogs
+'See the 3 Dogs'
+# add&count.ndf
+
+# two versions of a routine to count and add the values one per line in a file.
+  The first uses a loop and reads one line of the file at a time.
+  The second uses the power of arrays to read all the data and do the computation.
+
+add_and_count1 IS OPERATION Filename {
+   Total Counter := 0. 0 ;
+   File_num := open Filename "r ;
+   Record := readfile File_num ;
+   % As long as the record is not the fault ?eof do the loop expressions ;
+   WHILE Record ~= ??eof DO
+      % Add the number obtained by executing string Record to the total;
+      Total := Total + (execute Record) ;
+      % Add one to the counter ;
+      Counter := Counter + 1 ;
+      % Read the next record ;
+      Record := readfile File_num ;
+   ENDWHILE ;
+   close File_num ;
+   Counter Total}
+
+# An alternative way of doing this is as follows:
+
+add_and_count2 IS OPERATION Filename {
+   % Read the records of the file and convert each to a number ;
+   Records := EACH tonumber getfile Filename ;
+   % Return the tally and the sum of the records ;
+   [tally,sum] Records }
+# eigen.ndf
+
+# This file contains an implementation of the standard eigenvalue
+  techniques using Householder transformations from the literature.
+  It is based on the algorithms published originally in Numerische Mathematik
+  in the late 60's and later in the Handbook of Linear Algebra. The original
+  algorithms were published in Algol 60.  Mike Jenkins translated
+  these to APL in the early 70's.  The routines below are translations
+  of the APL versions.  This library file was developed by Peter Larsen from the
+  Danish Technical University while on a study leave at Queen's in 1987.  
+
+# This library uses the operation "solve".
+
+library "solve
+
+# There are two main routines:
+
+#  eig A S    A is an N by N real matrix, S is a truth-value.
+              If S = l, eig returns a pair consisting of a
+              list of eigenvalues and a matrix of corresponding
+              eigenvectors (as columns). The eigen vectors can
+              be found only if all the eigenvalues are real.
+              If S = o, eig returns the list of eigenvalues.
+
+# If you need to compute eigenvalues and some of the eigenvalues are complex,
+  you can use Q'Nial Version 4.1 which implements complex arithmetic. For
+  price and availability information, contact Nial Systems Limited.
+
+#  eigv A Ev  A is a real matrix and Ev is a real eigenvalue. The
+              result is the corresponding eigenvector.
+
+
+# Given the asymmetric matrix A of the shape n * n this
+  procedure reduces the matrix to Hessenberg Form H, by
+  non-orthogonal elementary transformations. The matrix
+  H is overwritten on A.
+  The algorithm is taken from "Numerische mathematik 12,
+  pp. 349 - 368 (1968)"
+
+Eps := 1e-15;
+
+hess IS OPERATION A N {
+    I := 1 ;
+    J := 0 ;
+    WHILE N > I DO
+       D := abs ( ( J + 1 ) drop A | [ , J ] ) ;
+       K := J + 1 + first ( ( max D ) find D ) ;
+       IF K ~= I THEN
+  % Interchange rows and columns of array a;
+          A | [ I K , ] := A | [ K I , ] ;
+          A | [ , I K ] := A | [ , K I ] ;
+       ENDIF ;
+       X := A @ ( I ( I - 1 ) ) ;
+       IF X ~= 0. THEN
+          Im := I + 1 ;
+          Y := Im drop A | [ , J ] / X ;
+          P := Im drop tell N ;
+          A | [ P , P ] := ( ( Im Im ) drop A ) - ( OUTER times Y (
+          Im drop A | [ I , ] ) ) ;
+          A | [ P , I ] := ( Im drop A | [ , I ] ) + ( ( ( Im Im )
+          drop A ) innerproduct Y ) - ( Y * A @ ( I I ) ) ;
+          Temp := Im N take A ;
+          Temp := Im ( Im - N ) take Temp ;
+          A | [ tell Im , I ] := ( Im take A | [ , I ] ) + ( Temp
+          innerproduct Y ) ;
+       ENDIF ;
+       J := I ;
+       I := J + 1 ;
+    ENDWHILE ;
+    A }
+
+
+# Given a real upper Hessenberg matrix A of shape n * n this
+  procedure will try to find all the eigenvalues of A.
+  The algorithm is taken from "Numerische mathematik 14,
+  pp. 219 - 231 (1970)
+
+hqr IS OPERATION A N {
+    Ev := ( 2 N ) reshape 0 ;
+    Its := 0 ;
+    Failed := False ;
+    WHILE ( ( N ~= 0 ) or Failed ) DO
+       A := ( N N ) take A ;
+       Ni := N - 1 ;
+       Na := Ni - 1 ;
+       Found := False ;
+       REPEAT
+          D := abs ( [ 0 1 ] fuse A ) ;
+          Rhs := Eps * ( ( 1 drop D ) + ( -1 drop D ) ) ;
+          Am := 1 0 drop A ;
+          Am := 0 -1 drop Am ;
+          Lhs := abs ( [ 0 1 ] fuse Am ) ;
+  % Lm is index of a small sub-diagonal element;
+          Lm := N - 1 - first ( l find ( reverse ( Lhs <= Rhs ) ) ) ;
+          X := A @ ( Ni Ni ) ;
+          IF Lm ~= Ni THEN
+             Y := A @ ( Na Na ) ;
+             R := A @ ( Ni Na ) * A @ ( Na Ni ) ;
+             IF Lm ~= Na THEN
+                CASE Its FROM
+                      10 :
+                         Y := abs A @ ( Ni Na ) + abs A @ ( Na ( Ni -
+                         2 ) ) ;
+                         S := 1.5 * Y ;
+                         Y := Y power 2 ;
+                         END
+                      20 :
+                         Y := abs A @ ( Ni Na ) + abs A @ ( Na ( Ni -
+                         2 ) ) ;
+                         S := 1.5 * Y ;
+                         Y := Y power 2 ;
+                         END
+                      30 :
+                         write (
+ 'Failed to converge. Returns eigenvalues found so far.' ) ;
+                         Ev := ( 0 N ) drop Ev ;
+                         Failed := Truth ;
+                         EXIT Ev ;
+                         END
+                      ELSE
+                         S := X + Y ;
+  % form shift;
+                         Y := ( X * Y ) - R ;
+                ENDCASE ;
+                Its := Its + 1 ;
+                Cont2 := Truth ;
+                M := Ni - 2 ;
+  % Look for two consecutive small sub-diagonal elements;
+                WHILE ( ( M >= Lm ) and Cont2 ) DO
+  % Start of loop1;
+                   X := A @ ( M M ) ;
+                   R := A @ ( ( M + 1 ) M ) ;
+                   Z := A @ ( ( M + 1 ) ( M + 1 ) ) ;
+                   Pqr := ( X * ( X - S ) + Y + ( R * A @ ( M ( M + 1
+                   ) ) ) ) ( R * ( X + Z - S ) ) ( R * A @ ( ( M + 2
+                   ) ( M + 1 ) ) ) ;
+                   Pqr := Pqr / sum abs Pqr ;
+                   IF M = Lm THEN
+                      Cont2 := False ;
+                   ELSE
+                      Lhs := abs ( A @ ( M ( M - 1 ) ) * sum abs ( 1
+                      drop Pqr ) ) ;
+                      Rhs := Eps * abs first ( Pqr ) * ( abs ( A @ (
+                      ( M - 1 ) ( M - 1 ) ) ) + abs X + abs Z ) ;
+                      IF Lhs <= Rhs THEN
+                         Cont2 := False ;
+                      ELSE
+                         M := M - 1 ;
+                      ENDIF ;
+                   ENDIF ;
+                ENDWHILE ;
+  % End of loop1;
+                I := M + 3 ;
+                A @ ( ( I - 1 ) M ) := 0. ;
+                WHILE Ni >= I DO
+  % Start of loop2;
+                   A | [ I , ( I - 2 3 ) ] := 0. ;
+                   I := I + 1 ;
+                ENDWHILE ;
+  % End of loop2;
+                K := M ;
+  % Double QR step involving rows Lm to n and columns m to n;
+                WHILE Na >= K DO
+  % Start of loop3;
+                   Kpn := K + tell ( 2 + ( K ~= Na ) ) ;
+                   IF K ~= M THEN
+                      Pqr := A | [ Kpn , ( K - 1 ) ] ;
+                      X := sum abs Pqr ;
+                      IF X ~= 0 THEN
+                         Pqr := Pqr / X ;
+                      ENDIF ;
+                   ENDIF ;
+                   IF ( K = M ) or ( X ~= 0 ) THEN
+                      S := sqrt ( sum ( Pqr power 2 ) ) ;
+                      IF first ( Pqr ) < 0 THEN
+                         S := opp ( S ) ;
+                      ENDIF ;
+                      IF K ~= M THEN
+                         A @ ( K ( K - 1 ) ) := opp ( S * X ) ;
+                      ELSEIF Lm ~= M THEN
+                         A @ ( K ( K - 1 ) ) := opp ( A @ ( K ( K - 1
+                         ) ) ) ;
+                      ENDIF ;
+                      Pqr @ ( 0 ) := S + first Pqr ;
+                      Xyz := Pqr / S ;
+                      Pqr := Pqr / first Pqr ;
+                      J := K + tell ( Ni - K + 1 ) ;
+                      Temp1 := transpose ( ( ( tally J ) ( tally Pqr
+                      ) ) reshape Pqr ) ;
+                      Temp2 := sum rows ( A | [ Kpn , J ] * Temp1 ) ;
+                      A | [ Kpn , J ] := A | [ Kpn , J ] - OUTER
+                      times Xyz Temp2 ;
+                      I := Lm + tell ( 1 + min ( Ni ( K + 3 ) ) - Lm
+                      ) ;
+                      Temp3 := ( ( tally I ) ( tally Pqr ) ) reshape
+                      Xyz ;
+                      A | [ I , Kpn ] := A | [ I , Kpn ] - ( ( sum
+                      cols ( A | [ I , Kpn ] * Temp3 ) ) OUTER * Pqr
+                      ) ;
+                   ENDIF ;
+                   K := K + 1 ;
+                ENDWHILE ;
+  % End of loop3;
+             ELSE
+  % Two roots found;
+                Found := Truth ;
+                P := ( Y - X ) / 2 ;
+                Q := R + ( P power 2 ) ;
+                Y := sqrt abs Q ;
+                IF Q > 0 THEN
+  % Real pair;
+                   IF P < 0 THEN
+                      Y := P - Y ;
+                   ELSE
+                      Y := P + Y ;
+                   ENDIF ;
+                   Ev | [ , Na Ni ] := ( 2 2 ) reshape ( ( X + Y ) (
+                   X - ( R / Y ) ) 0.0 0.0 ) ;
+                ELSE
+  % Complex pair;
+                   Ev | [ , Na Ni ] := ( 2 2 ) reshape ( ( X + P ) (
+                   X + P ) ( Y ) ( opp ( Y ) ) ) ;
+                ENDIF ;
+                N := N - 2 ;
+             ENDIF ;
+          ELSE
+  % One root found;
+             Ev | [ , Ni ] := X 0. ;
+             N := N - 1 ;
+             Found := Truth ;
+          ENDIF ;
+       UNTIL Found
+       ENDREPEAT ;
+    ENDWHILE ;
+    Ev }
+
+
+#  "eig" is the main function in the eigenvalue-problem. It is
+  able to find both eigenvalues and eigenvectors provided the
+  eigenvalues all are real.
+
+# Given the matrix a and the boolean value vek this operation
+  finds the eigenvalue of matrix a and optionally the corresponding
+  eigenvectors. If vek is false then just the eigenvalues are
+  found but if vek is equal to truth then both the eigenvalues and
+  eigenvectors (provided the eigenvalues are all real) are found.
+  The result is of shape n only if the eigenvalues are wanted.
+  If the eigenvectors are also wanted the result is a pair where
+  the first element is a vector of the eigenvalues and the second
+  element is a matrix containing the eigenvectors as columns.
+
+eig IS OPERATION A Vek {
+  %a:= real a;
+    N := first shape A ;
+    Ah := hess A N ;
+    Ev := hqr Ah N ;
+    Lhs := max Ev | [ 1 , ] ;
+    Rhs := Eps * sum abs link Ev ;
+    IF Lhs >= Rhs THEN
+  % There are complex eigenvalues;
+       write 'Some of the eigenvalues are complex.' ;
+  % ev|[0,]+(0j1*ev|[1,]) ;
+       A := Null ;
+       Ev := Null
+    ELSEIF not Vek THEN
+  % Vectors are not wanted and the eigenvalues are real;
+       Ev | [ 0 , ]
+    ELSE
+  % Vectors are wanted and there are only real eigenvalues;
+       In := tell N ;
+       Id := In OUTER = In ;
+       Ev := Ev | [ 0 , ] ;
+       I := 0 ;
+       J := 0 ;
+       Z := [ ] ;
+       WHILE I <= ( ( tally Ev ) - 1 ) DO
+          M := sum ( ( 1000 * Eps ) > abs ( Ev - Ev @ I ) ) ;
+          Ran := ( M N ) reshape random ( N + 1 ) ;
+          B := mix ( rows ( A - ( Ev @ I * Id ) ) link ( rows Ran ) )
+          ;
+          Lv := ( N reshape 0 ) link ( M reshape 1 ) ;
+          Tb := transpose B ;
+          V := solve ( Tb innerproduct B ) ( Tb innerproduct Lv ) ;
+          IF isfault V THEN
+             J := J + 1 ;
+             IF J = 5 THEN
+                I := I + 1 ;
+                Z := Z append ( N reshape 0 ) ;
+                J := 0 ;
+             ENDIF ;
+          ELSE
+             Z := Z append ( V / max abs V ) ;
+             I := I + 1 ;
+          ENDIF ;
+       ENDWHILE ;
+       ( Ev ( mix flip Z ) )
+    ENDIF }
+
+
+# Given a real matrix a and a real eigenvalue of matrix a this
+  procedure finds the corresponding eigenvector. This routine
+  is provided in case only a few of the eigenvectors are required.
+
+eigv IS OPERATION A E {
+    N := 0 pick shape A ;
+    Lv := N reshape 1. ;
+  %id:=real OUTER = (tell n) (tell n);
+    Id := OUTER = ( tell N ) ( tell N ) ;
+    Cnt := 0 ;
+    Scale := False ;
+    Ugh := False ;
+    REPEAT
+       IF ( abs E ) >= 1 THEN
+          Pm := E * Eps * 100 ;
+  % to avoid singular matrix in solve ;
+       ELSE
+          Pm := Eps * 100 ;
+       ENDIF ;
+       V := solve ( A - ( Id * ( E + Pm ) ) ) Lv ;
+       IF ( recip ( Eps * 1000 ) ) < sqrt ( sum ( V power 2 ) ) THEN
+          Scale := Truth ;
+  % There it is;
+       ELSE
+          Cnt := Cnt + 1 ;
+          IF Cnt > 5 THEN
+  % We give up;
+             Ugh := Truth ;
+          ELSE
+             Lv := 3 * random N ;
+          ENDIF ;
+       ENDIF ;
+    UNTIL Scale or Ugh
+    ENDREPEAT ;
+    IF Scale THEN
+       ( V / max abs V )
+    ELSEIF Ugh THEN
+       write (
+       'Unable to find eigenvector corresponding to eigenvalue ' E )
+       ;
+       N reshape 0
+    ENDIF }
+
+# test using a random symmetric matrix of size N by N, which will have real eigenvalues.
+
+#
+test is OP N { NONLOCAL a b c d e f;
+   a gets random N N ;
+   a gets a ip transpose a;
+   write "hess (b gets hess A N) ;
+   write "hqr (c gets hqr A N) ;
+   write "eig (d gets eig A l) ;
+   write "eigv (f gets eigv A (e gets first eig A o));
+}
+
+  
+#
+test 5
+#
+Operation: deleteall Array Value
+Transformer: DELETEBY Predicate Array
+File: deleteby.ndf
+
+# DELETEBY deletes all items from the given array that satisfy the predicate.
+  The result is a list. 
+deleteall uses DELETEBY to delete all occurrences
+  of a value in an array. It also returns a list.
+
+DELETEBY IS TRANSFORMER f ( sublist [ not EACH f , pass ] )
+
+deleteall IS OPERATION Array Value {
+   DELETEBY Value = Array }
+
+# Examples:
+
+#        DELETEBY (2=) (3 2 1 4 2)
+3 1 4
+         DELETEBY (`a=) 'a fat cat sat'
+ ft ct st
+         DELETEBY empty 'abc' '' (2 3 4) Null 5
++---+-----+-+
+|abc|2 3 4|5|
++---+-----+-+
+         DELETEBY (3 >) count 5
+3 4 5
+         deleteall (30 reshape count 5) 3
+1 2 4 5 1 2 4 5 1 2 4 5 1 2 4 5 1 2 4 5 1 2 4 5 
+
+# When the predicate is (3 >), for example, the items from count 5 that are
+deleted are the ones less than 3.  Thus, "DELETEBY (3 >) count 5" returns 3 4 5.
+#
+Operation: diagonal Array
+File: diagonal.ndf
+
+# This operation returns the diagonal of its array argument.
+
+diagonal IS OPERATION Array {
+   solitary tell valence Array fuse Array }
+
+# Examples:
+
+#        diagonal (2 2 reshape tell 4)
+0 3
+
+#        A := 3 3 3 reshape tell 27
+0 1 2   9 10 11  18 19 20
+3 4 5  12 13 14  21 22 23
+6 7 8  15 16 17  24 25 26
+
+#          diagonal A
+0 13 26
+
+# -------------------------------------------------
+# Simple string formating utilities
+# using C style string escapes and string insertion
+# from a supplied array using escapes /0../9
+# -------------------------------------------------
+
+library "foldl;
+library "unicode;
+library "radix;
+
+# Forward declarations
+
+sprintf_insert      is external op;
+sprintf_subst       is external op;
+sprintf_unicode     is external op;
+
+_crlf := char 13 10;
+
+
+# Simple string insert, \i is replaced
+# by the i'th value of the input values vector
+
+sprintf_insert is op pos args {
+  s vals := args;
+  s := 1 drop s;
+  if pos < tally vals then
+    expn := pos pick vals;
+    pic := rows picture expn;
+    if 1 = tally pic then
+      (first pic) link s
+    else
+      '' left_reduce (op x y (link x _crlf y))  (pic append s)
+    end
+  else
+    ?index_error
+  end  
+}
+
+
+# Substitute chars on a string using backslash escapes
+
+sprintf_subst is op ch args {
+  s vals := args;
+  ch hitch (1 drop s)
+}
+
+  
+# Handle C style unicode sequences in a string
+
+sprintf_unicode is op n args {
+  s vals := args;
+  write s;
+  link [utf8 _hex (n take), n drop] (1 drop s)
+}
+
+# List of \ chars and their associated functions
+
+sprintf_basics := [`0,`1,`2,`3,`4,`5,`6,`7,`8,`9, `u, `U, `n, `r, `t];
+sprintf_trans := [!(0 sprintf_insert),
+                !(1 sprintf_insert),
+                !(2 sprintf_insert),
+                !(3 sprintf_insert),
+                !(4 sprintf_insert),
+                !(5 sprintf_insert),
+                !(6 sprintf_insert),
+                !(7 sprintf_insert),
+                !(8 sprintf_insert),
+                !(9 sprintf_insert),
+                !(4 sprintf_unicode),
+                !(8 sprintf_unicode),
+                !((char 10) sprintf_subst),
+                !((char 13) sprintf_subst),
+                !((char 8) sprintf_subst),
+                !pass];
+
+
+sprintf_element is op elt vals {
+  if (1 >= tally elt) or (`\ ~= first elt) then
+    elt
+  else
+    fn := ((second elt) find sprintf_basics) pick sprintf_trans;
+    fn apply [(1 drop elt), vals]
+  end
+}
+  
+
+
+# Basic string char substitution and string interpolation
+# top level. This splits the string into a series of substrings
+# which begin with \ excepting, possibly, the first string.
+ 
+sprintf is op args {
+  % Check input arguments for presence of values;
+  if (2 = tally args) and (not isstring args) then
+    s vals := args;
+  else
+    s := args;
+    vals := [];
+  endif;
+  % split the format string into slices and process;
+  cmask := o left_accumulate (and [not first, second]) (`\ match s);
+  sv := (cmask cutall s);
+  sv := (each (0 < tally) sv) sublist sv;
+  link (sv eachleft sprintf_element vals)
+}
+
+
+
+
+# cuttext.ndf
+
+# a routine to cut text into lines of equal length broken on word boundaries.
+
+cuttext IS OPERATION Text Width {
+    T := '' ;
+    WHILE tally Text > Width DO
+       Where := findall `  Text ;
+       IF not empty Where THEN
+          Last_blank := Where@(o find (Width > Where) - 1 max 0);
+          T := T append ( Width take (Last_blank take Text) ) ;
+          Text := Last_blank + 1 drop Text ;
+       ELSE
+          T := fault '?Width too small';
+          Text := '';
+       ENDIF;
+    ENDWHILE ;
+    IF tally Text > 0 THEN
+       T := T append ( Width take Text ) ;
+    ENDIF ;
+    T }
+
+# Example
+
+#
+Txt := 'Now is the time for all good men to come to the aid of the party.' ;
+
+#
+    cuttext txt 18
++------------------+------------------+------------------+------------------+
+|Now is the time   |for all good men  |to come to the    |aid of the party. |
++------------------+------------------+------------------+------------------+
+
+# ---------------- radix integers ----------------------
+#
+# Functions to convert radix strings to integers and
+# vice-versa. This covers octal, hex, binary.
+# Base can be up to 36.
+#
+# An APL style decode is also here, with any base.
+
+library "foldl;
+
+ 
+_radixChars := '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+
+# String to int
+
+_radix is op base str {
+  codes := str eachleft find (base take _radixChars);
+  if or (base match codes) then
+    ??invalid_chars
+  else
+    0 foldl (op x y (x*base+y)) codes
+  end
+}
+
+# APL style decode
+
+decode is op base num {
+  if and[tally base ~= tally num,tally base ~= 1,tally num ~= 1] then
+    ??length
+  else
+    if tally base < tally num then base := tally num reshape base end;
+    base := reverse accumulate * reverse (1 drop base link 1);
+    + (num * base)
+  end
+}
+
+# int to string
+
+_inradix is op base num {
+  res := '';
+  repeat
+    num c := num [quotient,mod] base;
+    res := (c pick _radixChars) hitch res;
+  until
+    num = 0
+  endrepeat;
+  res
+}
+
+# Common usages
+  
+_hex    is (16 _radix);
+_octal  is (8 _radix);
+_binary is (2 _radix);
+
+# Inverses of above
+
+_hexstr is (16 _inradix);
+_octstr is (8 _inradix);
+_binstr is (2 _inradix);
+
+# Left to right versions of reduce
+
+foldl is transformer fn op x y {
+  for i with y do x := x fn i endfor
+}
+
+
+#CORE.NDF - definitions included in all Nial 7.0 versions
+
+# the following definitions are kept for compatibility
+with earlier versions:
+
+div is /
+
+prod is *
+
+truth is true
+
+falsehood is false
+
+opp is opposite
+
+recip is reciprocal
+
+istruthvalue is isboolean
+
+flip is pack
+
+mold is take
+
+#gage is OPERATION A { 
+ A := content A;
+ IF and EACH isinteger A THEN
+    IF tally A = 1 THEN 
+       IF first A >= 0 THEN first A ELSE ??gage ENDIF
+    ELSE
+       IF and EACH (0<=) A THEN list A ELSE ??gage ENDIF
+    ENDIF
+ ELSE 
+   ??gage
+ ENDIF }
+
+vacate is 0 reshape
+
+void is vacate single
+
+# end of obsolete definitions
+
+# The following names are part of the language and should be
+included. They are placed here so that internally, the same code
+is used. The abbreviations appear when the name is displayed.
+
+sum is +
+
+product is *
+
+minus is -
+
+divide is /
+
+lt is <
+
+gt is >
+
+lte is <=
+
+gte is >=
+
+equal is =
+
+unequal is ~=
+
+# The following abbreviations are included for convenience.
+
+inv is inverse
+
+ip is innerproduct
+
+# the following definitions are considered part of the language, but can be
+removed if the user does not need them.
+
+Pi IS 3.1415926535897932
+
+axes IS OPERATION A {tell valence A}
+
+post IS OPERATION A { [tally A, 1] reshape A }
+
+count IS OPERATION A { 1 + tell A }
+
+last IS OPERATION A {tally A - 1 pick list A}
+
+notin IS OPERATION A B { not (A in B) }
+
+allin IS OPERATION A B { and (A EACHLEFT in B) }
+
+like IS OPERATION A B { A allin B and (B allin A) }
+
+front IS OPERATION A {
+        IF empty A THEN
+                list A
+        ELSE
+                tally A - 1 reshape A
+        ENDIF }
+
+takeright IS OPERATION A B {
+  opposite A take B }
+
+dropright IS OPERATION A B {
+   opposite A drop B }
+
+lower IS OPERATION N A {
+ IF isinteger N THEN
+   IF N < 0 or (N > valence A) THEN
+     fault '?left arg of lower out of range'
+   ELSE
+     valence A - N raise A
+   ENDIF
+ ELSE
+   fault '?left arg not an integer'
+ ENDIF }
+
+rows IS OPERATION A { valence A min 1 lower A }
+
+split IS OPERATION I A {
+   IF empty A THEN
+      fault '?empty right arg in split'
+   ELSEIF not(I allin axes A and diverse I) THEN
+      fault '?invalid left arg in split'
+   ELSE
+     J gets axes A except link I;
+     tally J raise (J link I fuse A)
+   ENDIF }
+
+blend IS OPERATION I A {
+   IF empty A THEN
+      A
+   ELSE
+     J gets tell (valence A + valence first A) except I;
+     GRADE <= (J link I) fuse mix a 
+   ENDIF }
+
+
+cols IS OPERATION A {
+  IF valence A = 0 or (a = Null) THEN
+    single A
+  ELSE
+    valence A - 2 max 0 split A
+  ENDIF }
+
+rotate IS OPERATION N A {
+  IF isinteger N THEN
+    Ta := tally A;
+    shape A reshape (Ta + N + tell Ta mod Ta choose list A) 
+  ELSE
+    fault '?first arg of rotate not an integer'
+  ENDIF
+  }
+
+# the generic INNER transformer.  Typical use is INNER [sum,times]
+or INNER [+,*] .
+
+INNER IS TRANSFORMER f g  OPERATION A B {
+  IF valence A <= 2 THEN
+     AA := rows A;
+  ELSE
+     AA := 1 lower A;
+  ENDIF;
+  IF valence B <= 2 THEN
+     BB := cols B;
+  ELSE
+     BB := 1 raise B;
+  ENDIF;
+  EACH f (AA OUTER (EACHBOTH g) BB) }
+
+
+# the following two transformers are intended to be applied to operations
+that map lists to lists such as reverse and (N rotate). The resulting
+transform is intended to be used on a two-dimensional array.
+
+BYROWS IS TRANSFORMER f OPERATION A {
+       1 RANK f A }
+
+BYCOLS IS TRANSFORMER f OPERATION A {
+       transpose (1 RANK f transpose A) }
+
+PARTITION IS TRANSFORMER f OPERATION Ij A {
+  IF empty Ij or (tally Ij > 2) THEN
+    fault 'invalid left arg of PARTITION transform'
+  ELSEIF empty A THEN
+    A
+  ELSE
+    IF tally Ij = 1 THEN
+       I := J := first Ij;
+    ELSEIF tally Ij=2 THEN
+       I J := Ij;
+    ENDIF;
+    II gets axes A except I link I;
+    B := tally I RANK f (II fuse A);
+    IF J = Null and (shape B = Null) THEN
+      first B
+    ELSEIF tally J = (valence B - (valence A - tally I)) THEN
+      JJ gets axes B except J link J;
+      GRADE <= JJ fuse B
+    ELSE
+      fault 'left arg incompatible with function in PARTITION transform'
+    ENDIF
+  ENDIF }
+
+
+
+# the following two transformers are intended to be applied to operations
+that are binary or reductive such as sum, max, or /. The resulting
+transform is intended to be used on a multi-dimensional array (valence >=2).
+
+REDUCEROWS IS TRANSFORMER f OPERATION A {
+   BYROWS (REDUCE f) A }
+
+REDUCECOLS IS TRANSFORMER f OPERATION A {
+   [valence A - 2 max 0,axes first A] PARTITION (REDUCE f) A }
+
+# Get the file path separator for this operating system
+
+OS_Path_Separator := os_get_parameter 1;
+
+# Get the users home directory
+
+OS_Home_Directory := os_get_parameter 2;
+
+# Where does QNial live?
+ 
+NialRoot := getenv 'NIALROOT';
+IF NialRoot = '' THEN
+  NialRoot := link [ OS_Home_Directory, OS_Path_Separator, 'QNial7-1' ];
+ENDIF;
+
+# Where we expect the library to be
+
+DefLibpath := link [NialRoot, OS_Path_Separator, 'niallib'];
+
+Libpath := Null;
+
+library IS OPERATION Arg {
+  Libs :=
+    IF empty Libpath THEN
+       [ DefLibpath ]
+    ELSEIF isstring Libpath or isphrase Libpath THEN
+       Libpath pair Deflibpath
+    ELSE
+       Libs := Libpath append Deflibpath
+    ENDIF;
+  IF tally Arg = 2 and not isstring Arg THEN
+    Filename Mode := Arg;
+  ELSE
+    Filename := Arg;
+    Mode := False;
+  ENDIF;
+  % turn off fault triggering in case the loaddefs faults;
+  Svtrigger := settrigger False;
+  Found := False;
+  WHILE not Found and not empty Libs DO
+    Libtotry Libs := [first,rest] Libs;
+    Pathtofile := link Libtotry OS_Path_Separator (string Filename);
+    Res := loaddefs Pathtofile Mode;
+    IF Res = ??noexpr THEN
+      Found := True;
+    ENDIF;
+  ENDWHILE;
+  settrigger Svtrigger;
+  Res }
+
+# fault builder to avoid triggering.
+
+quiet_fault is OPERATION Str {
+   Oldsetting := settrigger o;
+   Res := fault Str;
+   settrigger Oldsetting;
+   Res }
+
+# definitions of APL-like catenation forms.
+  A is the list of objects to be joined. For example, if A is C D E, then:
+  I catenate C D E joins C D and E along the Ith axis
+  I LAMINATE C D E creates a new axis of length 3 before axis I.
+
+catenate IS OPERATION I A {
+   % push down I axis of items of A;
+   B := EACH ( I split ) A ;
+   IF equal EACH shape B THEN
+      I blend EACH link pack B
+   ELSE
+      fault '?conform error in catenate'
+   ENDIF }
+
+laminate IS OPERATION I A {
+   IF equal EACH shape A THEN
+      Axesofitems := axes first A;
+         link (I take Axesofitems) (I drop Axesofitems + 1) blend A
+   ELSE
+      fault '?conform error in laminate'
+   ENDIF }
+
+sortup is SORT up
+
+gradeup is GRADE up
+
+ 
+# timing function that write the time and returns the result
+
+TIMEIT IS TRANSFORMER f
+    OPERATION A { 
+       T gets Time;
+       Val := f A;
+       write (Time - T); 
+       Val }
+ 
+ 
+Vars IS { Syms := symbols 0;
+      IF empty Syms THEN
+         Null
+      ELSE
+         Names Roles  := pack Syms;
+         "var match Roles sublist Names 
+      ENDIF }
+
+Exprs IS { Syms := symbols 0;
+      IF empty Syms THEN
+         Null
+      ELSE
+         Names Roles  := pack Syms;
+         "expr match Roles sublist Names 
+      ENDIF }
+
+Ops IS { Syms := symbols 0;
+      IF empty Syms THEN
+         Null
+      ELSE
+         Names Roles  := pack Syms;
+         "op match Roles sublist Names 
+      ENDIF }
+
+Trs IS { Syms := symbols 0;
+      IF empty Syms THEN
+         Null
+      ELSE
+         Names Roles  := pack Syms;
+         "tr match Roles sublist Names 
+      ENDIF }
+
+getsyms is op Defn_name {
+  varnames is op Root {
+   IF Root = quiet_fault '?Grnd' THEN
+     Null
+   ELSE
+     first Root hitch (varnames Root@3) link (varnames Root@4)
+   ENDIF };
+   varnames first second third second getdef Defn_name }
+
+FILTER IS TRANSFORMER f OPERATION A { EACH f A sublist A }
+
+depth IS OPERATION A 
+{ IF atomic A THEN
+    0
+  ELSE
+    1 + (max EACH depth A)
+  ENDIF } 
+
+
+
+# REGULAR EXPRESSION OPERATIONS added at the Nial level
+
+#
+# This codes implements an interface to the POSIX regular expression library.
+#
+# It separates compilation and matching/testing to improve efficiency in
+# conformance with the C implementation. This allows for better handling of
+# transformers combined with the routines.
+#
+# Compiled expressions are stored in one of 16 slots identified by the 
+# integers 0..15. By convention slot 15 is used as a temporary to allow
+# for older Nial regexp code to be written in Nial. 
+#
+#
+# The following operations are provided at the C level:
+#
+#    re_compile <index>  <re-string> <options>
+#
+#        This compiles the supplied string as a regular expression and stores 
+#        the compiled result at the nominated index for later use. It returns
+#        either true or throws a fault.
+#
+#    re_test <index> <string> <options>
+#
+#        This tests to see if the string matches the regular expression at
+#        the nominated index. It returns a true or false value. If an error
+#        occurs it may throw a fault.
+#
+#    re_match <index> <string> <num matches> <options>
+#
+#        This matches the string to the regular expression at the nominated
+#        index. It returns Null is there is no match, otherwise it returns 
+#        a list of pairs of integers of the form offset/length corresponding
+#        to the matched groups. The first pair corresponds to the whole
+#        matched substrings and the remainder to the individual subgroups.
+#
+#    re_extract <string> [<start> <length>]
+#
+#        This extracts the substring of the supplied string starting at index <start>
+#        of the nominated length.
+#
+#    re_split <string> [ [ <start> <len> ] ...]
+#
+#        This splits a string by removing the substrings specified by the sequence of
+#        <start>/<len> pairs. The result is a list of strings.
+#
+#    re_splice <value> <list>
+#
+#        This creates a new list from the supplied list obtained by splicing the value
+#        between element. 
+#
+# The options mentioned above is an integer value obtained by adding a number of the following values
+# to control either the compilation or the matching process
+#
+
+# Options
+# -------
+#
+# The options value is a combination of the following entries. The value is obtained
+# by adding the individual option values and the primitives code translates to the 
+# POSIX codes for internal use.
+#
+# The following options affect compilation
+#
+#   PREGEX_NONE     - No supplied options, use defaults
+#   PREGEX_EXTENDED - This is an extended POSIX regular expression
+#   PREGEX_ICASE    - Ignore case when matching
+#   PREGEX_NOSUB    - Dont store match details
+#   PREGEX_NEWLINE  - Dont treat newline as an ordinary character, affects ^ and $ matching
+#
+# The following options affect matching
+#
+#   PREGEX_NOTBOL   - Don't treat the beginning of the string as the beginning of a line
+#   PREGEX_NOTEOL   - Don't treat the end of the string as the end of a line
+
+PREGEX_NONE     := 0;
+PREGEX_EXTENDED := 1;
+PREGEX_ICASE    := 2;
+PREGEX_NOSUB    := 4;
+PREGEX_NEWLINE  := 8;
+PREGEX_NOTBOL   := 16;
+PREGEX_NOTEOL   := 32;
+
+
+# Code defaults
+# -------------
+
+PREGEX_MAXMATCH := 128;
+PREGEX_DEFINDEX := 15;
+
+# -------------------------------------------------------
+# Nial coded routines
+
+regexp_match IS OP args {
+  pattern := first args;
+  str := second args;
+  if tally args = 3 then
+    opts := third args;
+  else 
+    opts := PREGEX_NONE;
+  endif;
+  re := re_compile PREGEX_DEFINDEX pattern opts;
+  re_match PREGEX_DEFINDEX str PREGEX_MAXMATCH opts
+}
+
+
+#regexp_substitute IS OP args {
+  pattern := first args;
+  repl := second args;
+  str := third args;
+  if tally args = 4 then
+    opts := 3 pick args;
+  else
+    opts := ' ';
+  endif;
+  _regexp_s pattern repl str opts
+}
+
+
+#string_translate IS OP args {
+  pattern := first args;
+  repl := second args;
+  str := third args;
+  if tally args = 4 then
+    opts := args@3;
+  else
+    opts := ' ';
+  endif;
+  _regexp_tr pattern repl str opts
+}
+
+
+
+
+
+
+
+
+
+# high level routines for socket communication 
+
+MAXLENGTH IS 1000
+
+check_socket IS OP Arg {
+  NONLOCAL Return_status;
+  IF isfault Arg and (Arg ~= ??noexpr) THEN
+    write Arg;
+    Return_status := 'Connection_lost';
+    %Toplevel;
+  ENDIF;
+  Arg }
+
+socket_read IS OP socket {
+  Len := check_socket socket_receive socket 1 l;
+  %write 'received Len: ' Len;
+  %write 'type' (type Len);
+  str := '';
+  WHILE len - tally Str > MAXLENGTH DO
+    Piece := socket_receive socket MAXLENGTH o;
+    Str := Str link Piece;
+  ENDWHILE;
+  Str := Str link socket_receive socket (len - tally Str) o;
+  %write 'received Str ' Str;
+  %write 'received type' (type Str);
+  %write link 'received string of length ' (string tally Str);
+  Res := execute Str;
+  %write link 'containing ' (string tally content Res) ' atoms';
+  Res
+}
+
+
+socket_write IS OP socket array {
+  str := display array;
+  len := tally str;
+  check_socket socket_send socket len l;
+  WHILE tally str > MAXLENGTH DO
+    piece str := MAXLENGTH [take,drop] str;
+    socket_send socket piece o;
+  ENDWHILE;
+  socket_send socket str o;
+  %write link 'sent string of length ' (string tally Str);
+  %write link 'containing ' (string tally content array) ' atoms';
+}
+
+
+socket_getline IS OP socket echo echostar remoteecho {
+ nllist IS char (0 10 13);
+ input := null;
+ nl1 := list char 13;
+ nl2 := list char 10;
+ REPEAT
+  % get the next char;
+  inp := socket_receive socket 1 o;
+  IF isfault inp THEN
+    exit null;
+  ENDIF;
+  %-- if it is not a new line then use it;
+  IF inp ~= nl1 THEN
+    %-- add it to the end of our string;
+    input := input link inp;
+    IF echo THEN 
+      IF echostar THEN
+        socket_send socket '*';
+      ELSE
+        socket_send socket inp;
+      ENDIF;
+    ENDIF;
+  ELSE
+    %-- NON Blocking peek at the next character;
+    %-- depending on the client, there is sometimes a extra NULL or other nl char;
+    %-- character waiting;
+    inp2 := socket_peek socket 1 o;
+    if (first inp2) in nllist THEN
+      %-- if we got a NULL then gobble it up;
+      inp2 := socket_receive socket 1 o;
+    ENDIF;
+    IF remoteecho THEN
+     socket_send socket nl1;
+     socket_send socket nl2;
+     exit input;
+    ENDIF;
+    IF (inp2 = nl2)  THEN
+      IF echo THEN
+        socket_send socket nl1;
+        socket_send socket nl2;
+      ENDIF;
+      exit input;
+    ENDIF
+  ENDIF;
+ UNTIL o
+ ENDREPEAT
+}
+
+# Support code for hash tables in Nial viewed as associative arrays
+#
+# A hash table is a Nial data structure consisting of an array
+# of 5 entries 
+#
+#    0 - a standard phrase to identify a hash table
+#    1 - an array of keys
+#    2 - an array of values ( of the same size as keys)
+#    3 - some statistics on the array
+#    4 - a metadata slot for programmer use
+#
+# The code uses linear hashing with rehashing to handle collisions.
+# A table is automatically expanded if it becomes more than 70% full.
+# A hash table is not intended to be viewed. The definitions below
+# avoid returning the hash table as a value.
+# 
+# This code wraps a set of primitives with additional functionality
+#
+# The primitives are:
+#                  _tcreate count;     creates and return a new table
+#                  t  _tset key value  add a key/value pair 
+#                  t  _tget key        retrieve a value
+#                  istable t           test for a table
+#                  t  _tsetm mdata     set the metadata value
+#                  t  _tgetm           get the metadata value
+#                  t _tdel key         remove this key/value pair from t 
+#		           _getkeys t		   get the set of keys in use in t (new)
+#			
+
+
+# associatve array versions for adding pairs
+
+aupdate IS op AA KeyValpair {
+   AA _tset KeyValPair; }
+
+aupdateall IS op AA KeyValpairs {
+   AA EACHRIGHT aupdate KeyValpairs;
+  }
+
+
+# associative array versions for retrieving items
+
+apick IS OP Key AA {
+  AA _tget Key
+}
+
+achoose IS OP Keys AA {
+  Keys EACHLEFT apick AA }
+
+
+atell IS OP AA {
+  _getkeys AA }
+
+apickall IS OP AA {
+   atell AA achoose AA }
+
+
+# associative array version  of _tdel returns a Boolean value
+
+aremove IS OP AA Key {
+  AA _tdel Key = 1 }
+
+# ---------------------------
+# return the number of entries in a hash table
+
+tCount is OP T {
+	  3 0 reach T
+}
+
+# associative array version
+
+atally IS OP AA {
+   3 0 reach AA }
+
+# --------------------------
+# return the capacity of a hash table
+
+tsize is OP T {
+	 tally (1 pick T)
+}
+
+# associative array version
+
+acapacity IS OP AA {
+  tally (1 pick AA) }
+
+
+# --------------------------
+# return the number of probes in the last insertion
+
+tProbes is OP T {
+	   3 1 reach T
+}
+
+# omitted for associative arrays
+
+
+# ---------------------------
+# create a hash table from a list of key value pairs
+
+tnew is OP A {
+	t := _tcreate tally A;
+	t eachright _tset A;
+	t
+}
+
+# associative array version
+
+acreate IS OP Nm KeyValpairs {
+   AA :=  _tcreate tally KeyValpairs;
+   AA EACHRIGHT _tset KeyValpairs;
+   Nm assign AA; }
+
+ #----------------------
+# equality test for associative arrays	
+
+aequal IS OP AA BB {
+  apickall AA = apickall BB }
+
+# routines to support generation of HTML pages
+
+# generic SELECT input generator
+    Selectnm is the Name given to the Selection
+    Selectpairs is a list of pairs: first the VALUE field that
+       is returned and second the text to be displayed. 
+    Posn is the position of the default value to be displayed.
+
+buildHTMLselect IS OP Selectnm Selectpairs Posn {
+  buildoption IS OP Optionpr Isposn {
+  Seltext := IF Isposn THEN 'SELECTED ' ELSE ' ' ENDIF;
+  link '<OPTION ' Seltext 'VALUE="' (first Optionpr) '">' (second Optionpr)
+  '</OPTION>' };
+    (link '<SELECT NAME="' Selectnm '">') hitch
+    (Selectpairs EACHBOTH buildoption (Posn match grid Selectpairs))
+    append '</SELECT>' }
+
+# generic check box input generator.
+Assumes one per line. 
+If checks is a boolean then replicate it so all are checked or none are checked.
+
+buildcheckbox IS OP CBName CBVals CBTexts Checks {
+   Lines := tally CBvals reshape Null;
+   Checks := tally CBvals reshape Checks;
+   FOR I WITH grid CBvals DO
+      Chkstring := IF Checks@I THEN ' checked ' ELSE ' ' ENDIF;
+      Lines@I := link '<INPUT type="checkbox" name=' CBName 
+        ' value="' CBVals@I '"' Chkstring '> ' CBTexts@I '<br><br>';
+   ENDFOR;
+   Lines }
+   
+# generic radio select input generator.
+Assumes one per line, with Posn indicating the one to be set.
+
+buildradioselect IS OP RadName RadVals RadTexts Posn {
+   Lines := tally Radvals reshape Null;
+   FOR I WITH grid Radvals DO
+      Chkstring := IF I = Posn THEN ' checked ' ELSE ' ' ENDIF;
+      Lines@I := link '<INPUT type="radio" name=' RadName 
+        ' value="' RadVals@I '"' Chkstring '> ' RadTexts@I '<br><br>';
+   ENDFOR;
+   Lines }
+   
+
+# utility routine to drop trailing blanks in a string.
+
+drop_trailing_blanks IS OP Str {
+   Test Posn := o seek reverse (` match Str);
+   IF Test THEN
+      tally Str - Posn take Str
+   ELSE
+      ''
+   ENDIF }
+
+# routine to drop blanks before and after a string of text
+
+dropblanks IS OPERATION Str {
+   Str := list Str;
+   Str := False find (`  match Str) drop Str;
+   Str1 := reverse Str;
+   Str1 := False find (`  match Str1) drop Str1;
+   reverse Str1 }
+
+
+# utility to return a list of files (under UNIX) given a pattern.
+# The pattern should include the full path to the source files.
+
+getfilelist IS OP Pattern {
+  pgetfile is OP Command { %routine to get the output of a command;
+    Fh := open Command "pr;
+    Result := Null;
+    Rc := readfile Fh;
+    WHILE not isfault Rc DO
+      Result := Result append Rc;
+      Rc := readfile Fh;
+    ENDWHILE;
+    close Fh;
+    Result
+  };
+  pgetfile link '\ls ' (string Pattern)
+}
+#
+Operation: fuzzyeq A B
+File: fuzzyeq.ndf
+
+# Fuzzyeq tests the equality of two arrays.  It is useful for testing the
+  equality of real numbers that differ by a small amount in their internal
+  representations.
+
+fuzzyeq IS OPERATION A B {
+   numeric IS OPERATION N {
+      type N in o 0 0. } ;
+   Fuzz := 1.e-13 ;
+   % Test for exact equality;
+   IF A = B THEN
+     True
+   ELSEIF atomic A and atomic B THEN
+      % if both are numeric atoms then do the fuzzy test;
+      IF numeric A and numeric B THEN
+         % Return true if difference <= 1.e-13 in relative absolute value ;
+         abs ( A - B ) <= ( Fuzz * abs A )
+      ELSE
+         % Must be different atoms;
+         False
+      ENDIF
+   ELSEIF shape A = shape B THEN
+      % If A and B are non-atomic and have the same shape;
+      and EACHBOTH fuzzyeq A B
+   ELSE
+      False
+   ENDIF }
+
+# Example:
+
+#        sqrt 2. power 2 fuzzyeq 2.
+l
+#
+Operation: frequency Values A
+File: frequenc.ndf
+
+# This operation counts the number of occurrences in A of each value in
+  Values.
+
+frequency IS OPERATION Values A {
+   EACH sum ( Values EACHLEFT EACHRIGHT = A ) }
+
+# Example:
+
+#        frequency 'abc' 'The cat sat on the baseball bat'
+5 3 1
+208c208
+< latent is {
+---
+> shortestpath is {
+225a226,229
+> Latent is {
+>    writescreen 'type shortestpath to run a back tracking solution for shortest path' ;
+> }
+> 
+#
+Operation: xref File [Switch]
+File: xref.ndf
+
+# The xref operation writes a cross reference listing of all the definitions in the
+  current workspace to file "File".
+  The result gives a list, in alphabetical order, of each array, expression, 
+  operation, and transformer is listed showing the functional objects in which 
+  they occur.  
+  If Switch is present, then Predefined names are not included in the listing.  
+  The value of switch can be any atom; it is tested merely to see if it is present.
+
+xref IS OPERATION __File__ {
+   __getdef__ is op __nm__ { getdef __nm__ };
+   __tocanon__ IS OPERATION Name Kinds {
+      CASE Kinds FROM
+            "expr :
+               Strid := string Name ;
+               link ( first Strid ) ( tolower rest Strid )
+               END
+            "op :
+               tolower string Name
+               END
+            "tr :
+               toupper string Name
+               END
+            "var :
+               Strid := string Name ;
+               link ( first Strid ) ( tolower rest Strid )
+               END
+            "ident :
+               toupper string Name
+               END
+      ENDCASE } ;
+  { % block to isolate local names from use of getdef above;
+   Switch := tally __File__ ;
+   Filename := first __File__ ;
+   Oldsetting := settrigger o;
+   Filenumber := open Filename "w ;
+   IF isfault Filenumber THEN
+      settrigger Oldsetting;
+      Filenumber
+   ELSE
+      settrigger Oldsetting;
+      writefile Filenumber '     Cross Reference List' ;
+      writefile Filenumber ' ' ;
+      Names Kinds := pack symbols 0 ;
+      Allnames Allkinds := pack symbols 1 ;
+      IF Switch = 2 THEN
+         % Do not include predefined names in lists;
+         Predefined := Allnames except Names ;
+      ELSE
+         Predefined := "XREF ;
+      ENDIF ;
+      Records := '' ;
+      FOR Index WITH grid Names DO
+         Name := Names @ Index ;
+         K := Kinds @ Index ;
+         IF K ~= "var and ( Name ~= "XREF ) THEN
+            Tokenstream := rest deparse __getdef__ Name ;
+            Code Item := cols ( ( tally Tokenstream quotient 2 ) 2 reshape
+            Tokenstream ) ;
+            Itemlist := cull ( Code match 2 sublist Item ) ;
+            Records := Records append EACH ( phrase toupper string ) Itemlist ;
+         ELSEIF K = "var THEN
+            Kinds @ Index := phrase 'Global Variable' ;
+            Records := Records append Name ;
+         ELSE
+            Records := Records append Null ;
+         ENDIF ;
+      ENDFOR ;
+      Ids := SORT <= cull content Records except Predefined ;
+      FOR Id WITH Ids DO
+         Strid := string Id ;
+         There Where := seek Id Allnames ;
+         IF There THEN
+            IF Allkinds @ Where = "var THEN
+               Canonical_id := link ( first Strid ) ( tolower rest Strid ) ;
+            ELSE
+               Canonical_id := string __tocanon__ Id ( Allkinds @ Where ) ;
+            ENDIF ;
+            Th Wh := seek Id Names ;
+            IF Th THEN
+               Pid := link Canonical_id ' (' ( string ( Kinds @ Wh ) ) ')' ;
+            ELSE
+               Pid := link Canonical_id ' (Predefined ' ( string ( Allkinds @
+               Where ) ) ')' ;
+            ENDIF ;
+         ELSE
+            Canonical_id := link ( first Strid ) ( tolower rest Strid ) ;
+            Pid := link Canonical_id ' (Local)' ;
+         ENDIF ;
+         writefile Filenumber Pid ;
+         Pattern := Id EACHRIGHT in Records ;
+         Refs := SORT <= ( Pattern sublist Names except ( Id "XREF ) ) ;
+         IF not empty Refs THEN
+            Maxref := 1 + max EACH tally ( EACH string Refs ) ;
+         ELSE
+            Maxref := 80 ;
+         ENDIF ;
+         Quantity := tally Refs ;
+         Number_per_line := max 1 ( 80 quotient Maxref ) ;
+         REPEAT
+            IF Quantity > Number_per_line THEN
+               Refgroup := Number_per_line take Refs ;
+            ELSE
+               Refgroup := Quantity take Refs ;
+            ENDIF ;
+            Refgroup := Refgroup EACHBOTH __tocanon__ ( Allkinds # ( Refgroup
+            EACHLEFT find Allnames ) ) ;
+            Line := link ( Maxref EACHRIGHT take Refgroup ) ;
+            writefile Filenumber Line ;
+            Refs := Number_per_line drop Refs ;
+            Quantity := Quantity - Number_per_line ;
+         UNTIL Quantity <= 0
+         ENDREPEAT ;
+         writefile Filenumber ' ' ;
+      ENDFOR ;
+      close Filenumber ;
+   ENDIF }
+  }
+
+# Example of usage to cross reference the definitions in the library file utils.ndf.
+    nial -i
+    library "utils.ndf
+    library "xref 
+    xref "utils_xref_all.txt 
+    xref "utils_xref_not_predefined.txt l
+    
+#
+Operation: gcd M N
+File: gcd.ndf
+
+# This operation finds the greatest common divisor of two integers.
+
+gcd IS OPERATION M N {
+   % M and N must be positive integers ;
+   IF or ( type M N ~= 0 0 ) ( M <= 0 ) ( N <= 0 ) THEN
+      fault '?invalid argument to gcd.  Must be a positive integer.'
+   ELSE
+      WHILE M ~= 0 DO
+         G := M ;
+         M := N mod M ;
+         N := G ;
+      ENDWHILE ;
+      G
+   ENDIF }
+
+# Example:
+
+#        gcd 48 72
+24
+#
+Operation: stripblanks Str
+File: stripblanks.ndf
+
+# This operation removes all leading and trailing blanks from a string.
+
+stripblanks IS OPERATION Str {
+   Nonblanksat := EACH first (o findall (`  match list Str)) ;
+   IF empty Nonblanksat THEN
+      ''
+   ELSE
+      first Nonblanksat drop (last Nonblanksat + 1 take list Str) 
+   ENDIF }
+
+# Example:
+
+#       stripblanks '   This is a string.    '
+This is a string.
+
+#
+Operation: between Value Range
+File: between.ndf
+
+# This operation tests whether or not an atomic value is in the interval given
+  by a pair of values.  It can be used on numbers, characters or phrases. If
+  the argument on the left is an array of values, the result has the same shape
+  as the argument on the left.
+
+between IS OPERATION Item Range {
+   ( Item >= first Range ) and ( Item <= second Range ) }
+
+# Example:
+
+#        2 between 0 9
+l
+#
+File: benchmark.ndf
+
+# This file contains programs to benchmark the speed of Q'Nial in various
+  versions and on different hardware.
+#
+Expressions:
+   Scantest
+   Parse1test
+   Parse2test
+   Parse3test
+   Arith1test
+   Arith2test
+   Loop1test
+   Loop2test
+   Each1test
+   Each2test
+   Structtest
+   Selecttest 
+   Constructtest 
+   Searchtest 
+   Perv1test 
+   Perv2test
+Operations:
+   run N
+Transformer: TIMED f A
+
+
+TIMED is tr f op A {T := Time; f A; Time - T}
+
+scantest is {
+   Str gets 20000 reshape 'a 3.145 33 alongerid ''a string constant'' "phrase ';
+   timed (ITERATE scan) (3 reshape [Str]) }
+
+parse1test is { LOCAL a;
+   Tokens gets scan (5000 reshape 'a 3.145 33 ');
+   timed (ITERATE parse) (3 reshape [Tokens]) }
+
+parse2test is { LOCAL a;
+   Tokens gets scan (3000 reshape 'a ');
+   timed parse Tokens }
+
+parse3test is {
+   Tokens gets scan link (100 reshape ['if l then 1 else 2 endif; ']);
+   timed parse Tokens }
+
+arith1test is {
+   Parsetree gets parse scan link (10 reshape ['3. * 2. - 5. + '] append '1.');
+   timed (iterate eval) (50 reshape [Parsetree]) }
+
+arith2test is {
+   a gets 10000 reshape 3.;
+   b gets 10000 reshape 2.;
+   c gets 10000 reshape 5.;
+   d gets 10000 reshape 1.;
+   Parsetree gets parse scan link (5 reshape ['a * b - c + '] append 'd');
+   timed eval Parsetree }
+
+loop1test is {
+   Parsetree gets parse scan 'x gets 0;while x < 2000 do x gets x+1 endwhile;';
+   timed eval Parsetree }
+
+loop2test is {
+   Parsetree gets parse scan 'x gets 0;for i with count 2000 do x gets x + 1 endfor;';
+   timed eval Parsetree }
+
+each1test is {
+   Parsetree gets parse scan 'each pass count 6000';
+   timed eval Parsetree }
+
+each2test is {
+   Parsetree gets parse scan 'each (max tell) count 1000';
+   timed eval Parsetree }
+
+structtest is {
+  a gets 10 15 40 reshape 'abc';
+  Parsetree gets parse scan 'reverse mix rows transpose reverse a';
+   timed eval Parsetree }
+
+selecttest is {
+bintest is op n m {
+  x gets 0 find tell n pick reverse tell n;
+  y gets [m - 1] pick tell m find tell m;
+  tell n m choose tell n m;
+  x y
+};
+test is op n m {
+  tries gets m reshape [n m];
+  ITERATE bintest tries
+};
+Cases := [4 1,5 5,4 10,10 4];
+timed ITERATE test Cases }
+
+constructtest is {
+bintest is op n m {
+  z gets m reshape n;
+  w gets m hitch z append n;
+  last link (z w link w z)
+};
+test is op n m {
+  tries gets m reshape [n m];
+  ITERATE bintest tries
+};
+Cases := [4 1,10 10,4 30,50 10,2 3];
+timed ITERATE test Cases }
+
+searchtest is {
+bintest is op n m {
+  z gets link (m reshape [count n * Pi]);
+  sort <= cull z;
+  sz := sort <= z;
+  cull sz;
+  cull z eachleft findall z;
+  cull sz eachleft findall sz;
+  z except sz;
+};
+test is op n m {
+  tries gets m reshape [n m];
+  ITERATE bintest tries;
+};
+Cases := [4 1,10 2,20 5];
+timed ITERATE test Cases }
+
+perv1test is {
+arithtest is op a {
+  x gets a + a - a * a / a;
+  sum x x
+};
+test is op n m {
+  a gets n reshape count m * Pi;
+  tries gets m reshape [a];
+  ITERATE arithtest tries
+};
+Cases := [Null 50,1 50,10 20,100 5];
+timed ITERATE test Cases }
+
+perv2test is {
+arithtest is op a {
+  y gets ceiling a mod floor a quotient 2;
+  sum y y
+};
+test is op n m {
+  a gets n reshape count m * Pi;
+  tries gets m reshape [a];
+  ITERATE arithtest tries
+};
+Cases := [Null 50,1 50,10 20,50 5];
+timed ITERATE test Cases }
+
+
+Tests gets "scantest "parse1test "parse2test "parse3test "arith1test
+  "arith2test "loop1test "loop2test "each1test "each2test "structtest
+  "selecttest "constructtest "searchtest "perv1test "perv2test;
+
+run is op N {
+ average is div[sum,tally];
+ T := Time;
+ Res gets shape Tests reshape 0.;
+ for i with grid Tests do
+   Res@i gets average EACH execute (N reshape [Tests@i]);
+   write Tests@i (Res@i);
+ endfor;
+ write link 'Total time: ' (string (Time - T)); }
+# INTEGRATE f A B Eps
+
+# Find the integral of the function f over the interval A to B using
+  Adapative Simpson's Integration. Eps is the relative accuracy sought
+  in the answer.  This technique works well on functions that are not
+  smooth throughout the region. It adapts the amount of subdivision to
+  the requirements of the area of the curve.  See "romberg.ndf" for
+  an alternative integration routine.
+
+SIMPSON IS TRANSFORMER f
+    OPERATION A C B Fa Fc Fb S Eps {
+       X := ( A + C ) / 2 ;
+       Fx := f X ;
+       H := X - A ;
+       Left_s := H / 3 * ( Fa + ( 4 * Fx ) + Fc ) ;
+       Y := ( C + B ) / 2 ;
+       Fy := f Y ;
+       Right_s := H / 3 * ( Fc + ( 4 * Fy ) + Fb ) ;
+       New_s := Left_s + Right_s ;
+       IF abs ( New_s - S ) <= ( Eps * New_s ) THEN
+          New_s
+       ELSE
+          sum ( SIMPSON f A X C Fa Fx Fc Left_s Eps ) ( SIMPSON f C Y
+          B Fc Fy Fb Right_s Eps )
+       ENDIF }
+
+INTEGRATE IS TRANSFORMER f
+    OPERATION A B Eps {
+       C := ( A + B ) / 2 ;
+       H := C - A ;
+       Fa Fb Fc := EACH f A B C ;
+       S := H / 3 * ( Fa + ( 4 * Fc ) + Fb ) ;
+       SIMPSON f A C B Fa Fc Fb S Eps }
+
+# EXAMPLES:  
+     INTEGRATE exp -1 1 1e-6
+2.3504
+     INTEGRATE sin 0 pi 1e-6
+2.
+#
+Operation: average A
+File: average.ndf
+
+# This operation calculates the average of the numbers given in an array.
+
+average IS OPERATION A {
+   sum A / tally A }
+
+# Example:
+
+#        average 3 4 5
+4.
+#
+Operation: dropindex A Indices
+File: dropinde.ndf
+
+# This operation drops items with the specified indices from the given
+  array A.
+
+dropindex IS OPERATION A Indices {
+   grid A except Indices choose A }
+
+# Example:
+
+#        'abcdef' dropindex 0 2 4
+bdf
+
+#        tell 3 4 dropindex [0 0,1 1,2 2]
++---+---+---+---+---+---+---+---+---+
+|0 1|0 2|0 3|1 0|1 2|1 3|2 0|2 1|2 3|
++---+---+---+---+---+---+---+---+---+
+#
+Operation moving_average N Data
+
+# 
+The moving average of length N for an array of data is computed by the
+following operation:
+
+moving_average IS OPERATION N Data {
+    Indicies := tell (tally Data - N + 1) EACHLEFT + tell N;
+    Groups := Indicies EACHLEFT choose Data;
+EACH sum Groups / N }
+
+# Examples
+        2 moving_average 3 4 5 6 7 8
+3.5 4.5 5.5 6.5 7.5
+
+#
+        moving_average [2,3 4 5 6 7 8]
+3.5 4.5 5.5 6.5 7.5
+
+#
+Operation: centertext String Field_width
+File: centertext.ndf
+
+# This operation centers a string of characters within a field of specified
+  width.
+
+centertext IS OPERATION Text Width {
+   Text := string Text ;
+   Left := Width minus tally Text quotient 2 ;
+   Width take ( Left reshape ' ' link Text ) }
+
+# Example:
+
+#        centertext 'TITLE' 80
+                                    TITLE
+#
+Transformer: findby Predicate Array
+File: findby.ndf
+
+# Findby is a transformer that returns the addresses of items of a given array
+  which satisfy the predicate.
+
+FINDBY IS TRANSFORMER f ( sublist [ EACH f , grid ] )
+
+# Examples:
+
+#         FINDBY atomic (2 (3 4) 5)
+0 2
+         FINDBY ("dog =) ("cat "dog "horse)
+1
+#
+Operation: reflect Array
+File: reflect.ndf
+
+# Reflect a given table along the vertical axis.
+
+reflect IS mix ( EACH reverse rows )
+
+# Example:
+
+#        A := 2 3 reshape 'abcdef'
+abc
+def
+
+#        A (reflect A)
++---+---+
+|abc|cba|
+|def|fed|
++---+---+
+#
+Operation: towords Str
+File: towords.ndf
+
+# This operation returns the list of phrases of the words in the string.
+  Words in the string are character sequences separated by one or more blanks.
+  For example, the string 'See Spot run.' has 3 words:  "See", "Spot" and
+  "run.".
+
+towords IS OPERATION Str {
+   Strings := EACH phrase ( `  match Str cut Str ) }
+
+# Examples:
+
+#
+        set "decor ; towords 'See    Spot  run.'
+"See "Spot "run.
+
+#
+        towords '3 + 2 * 4'
+"3 "+ "2 "* "4
+#
+Operation: unitarray Sh
+File: unitarra.ndf
+
+# Unitarray builds the unit array for a given shape. If the shape is of length
+  two and both items of the shape are the same, then the result is the
+  identity matrix of that shape.
+
+unitarray IS OPERATION Sh { abs OUTER = EACH tell Sh }
+
+# Examples:
+
+#
+        unitarray 3 3
+1 0 0
+0 1 0
+0 0 1
+
+#
+        unitarray 4 4 4
+1 0 0 0   0 0 0 0   0 0 0 0   0 0 0 0
+0 0 0 0   0 1 0 0   0 0 0 0   0 0 0 0
+0 0 0 0   0 0 0 0   0 0 1 0   0 0 0 0
+0 0 0 0   0 0 0 0   0 0 0 0   0 0 0 1
+# intersect.ndf
+
+
+intersect IS OPERATION A {
+   IF empty A THEN
+      Null
+   ELSE
+      EACH and ( first A EACHLEFT EACHRIGHT in A ) sublist first A
+   ENDIF }
+
+#Example:
+     Friends := "Mary "Ludwig "Hercule "Tom "Sarah ;
+     Pals:= "Jack "Tony "Rick "Tom "Kalev;
+     intersect Friends Pals
+Tom#
+Operation: diffs Number_list
+File: diffs.ndf
+
+# Diffs returns the differences between adjacent items of a number list.
+
+diffs IS OPERATION Numbers {
+   rest Numbers - front Numbers }
+
+# Example:
+
+#        diffs 1 3 8
+2 5
+# BACKTRACKER.NDF
+
+# This workspace was developed by Lynn Sutherland March 1984  and modified
+  by Mike Jenkins in July 1987 to improve its generality.
+
+
+#                       General Backtracker
+  This is the generic setup for Lynn's backtracking algorithm.  The program
+  generates all paths through a network, checking certain conditions along
+  the way.
+  The user sets up a specific use of the algorithm by initializing the
+  network via the variables: Nodes and Reachablenodes.
+  The user directs the algorithm to find desired paths by supplying the
+  operations: haveapath and score, and the starting variable: Bestscore
+  and Bestpath.
+  The user may optionally supply the operations: terminalcondition and
+  heuristic to further guide the search.
+
+# Global Variables:
+       Nodes: a list of the nodes in the network.
+       Reachablenodes: a list of the reachable nodes corresponding
+              to each of the nodes in the list - Nodes.
+       Bestpath: a list of the nodes in the best path found so far.
+       Bestscore: a numeric value indicating the best score found
+              so far.  Bestscore = score Bestpath .
+
+# Provided Definitions:
+       search: the main backtracking operation.
+       start: an expression which prompts the use for a list
+              of possible starting nodes. These must be in the
+              form that nodes have for the network, and if only
+              one is given, it must be a list. For example,
+              if a node is a pair (as in the 8 Queen's example)
+              then a single starting value at node 1 0 must be
+              given as [1 0].
+
+# User provided definitions for the given problem
+       haveapath: a predicate that checks whether a path meets
+              the conditions for a desired path.
+       score: an operation which gives a value to a path and
+              sets the Bestpath and Bestscore variables.
+       reachablefrom: an operation which returns the nodes
+              reachable from a given node.
+       terminalcondition: a predicate which checks whether
+              the program should be terminated.
+       heuristic: an operation which re-orders and/or sublists
+              a list of reachable nodes so that the best choices
+              are at the beginning of the list.
+
+
+Quiet gets Falsehood;
+
+Nodes IS external variable
+
+Reachablenodes IS external variable
+
+Bestscore IS external variable
+
+Bestpath IS external variable
+
+haveapath IS external operation
+
+score IS external operation
+
+Init Is { NONLOCAL Bestpath Bestscore;
+  Bestpath gets Null;
+  Bestscore gets score Bestpath ;}
+
+Terminalcondition IS falsehood
+
+reachablefrom IS OPERATION Node ( first (Node find Nodes) pick Reachablenodes )
+
+heuristic IS reachablefrom last
+
+search IS OPERATION Currentpath Candidate {
+  IF not Quiet THEN write 'search' currentpath candidate; ENDIF;
+     IF not Terminalcondition THEN
+       IF not ( Candidate in Currentpath ) THEN
+         Newpath := Currentpath append Candidate;
+         IF haveapath Newpath THEN
+            score Newpath;
+         ELSE
+            ITERATE Newpath search (heuristic Newpath);
+         ENDIF;
+       ENDIF;
+     ENDIF;
+     }
+
+start IS {
+     startnodes gets read 'Starting nodes? ';
+     Init;
+     FOR Startnode WITH Startnodes DO
+         ITERATE [Startnode] search (heuristic [Startnode]);
+     ENDFOR;
+     write (phrase 'Best Score: ') Bestscore;
+     write (phrase 'Best Path: ') Bestpath;
+     }
+
+# The following part of the file is a special example of the use of the
+  backtracking algorithm based on determining the shortest distance between two
+  cities.
+
+#  The Travelling Salesman Problem for North American cities.
+
+#
+This example finds the shortest path between cities using the backtracking
+search algorithm.  The nodes are the cities that are in the system.
+The reachable nodes are those for which a direct connection exists.
+
+#
+The algorithm finds a shortest path by examining all possible paths
+that can satisfy the constraints. The search is guided by the heuristic
+described below.
+
+Nodes gets "Montreal "Toronto "Kingston "Calgary "Vancouver
+  "Boston "New_York "Washington "Chicago "San_Francisco "Los_Angeles ;
+
+Reachablenodes gets
+       ("Toronto "Kingston "Calgary "Boston "New_York "Chicago "Los_Angeles )
+       ("Montreal "Kingston "Calgary "Boston "New_York "Chicago "San_Francisco )
+       ("Toronto "Montreal )
+       ("Toronto "Montreal "Vancouver "New_York "Chicago )
+       ("Toronto "Calgary  "New_York "Chicago "Los_Angeles "San_Francisco )
+       ("Montreal "Toronto  "New_York "Chicago "Washington "San_Francisco )
+       ("Montreal "Toronto "Calgary "Boston "Chicago "Los_Angeles
+           "Washington "San_Francisco )
+       ("Boston "New_York "Chicago "Los_Angeles )
+       ("Toronto "Montreal "Calgary "Boston "New_York "San_Francisco )
+       ("Toronto "Montreal "Vancouver "New_York "Chicago "Los_Angeles )
+       ("Vancouver "Boston "New_York "Chicago "San_Francisco ) ;
+
+distab gets 11 11 reshape
+    0  6 3 40  0  9 10 0 15  0 70
+    6  0 3 30  0 11 12 0 13 41  0
+    3  3 0  0  0  0  0 0  0  0  0
+   33 30 0  0 10  0 35 0 40  0  0
+    0 40 0 10  0  0 50 0 30 10 12
+    9 10 0  0  0  0  2 5 12 50  0
+    9  9 0 40  0  2  0 2 12 45 40
+    0  0 0  0  0  5  2 0 20  0 48
+   15 13 0 30  0 15 18 0  0 35  0
+   46 40 0  0 10  0 40 0 25  0  6
+    0  0 0  0 16 50 52 0 35  6  0 ;
+
+pairs IS TR f OP a ( front a EACHBOTH f rest a )
+
+distance is op x y ( EACH first ((x find nodes) (y find nodes)) pick distab )
+
+score IS OP Path { nonlocal Bestscore Bestpath;
+     %writescreen link 'Found path: ' (sketch Path);
+     S gets sum PAIRS distance Path;
+     IF S < Bestscore THEN
+        Bestscore gets S;
+        Bestpath gets Path;
+     ENDIF;
+     }
+
+Destination is EXTERNAL variable;
+
+haveapath IS OP Path (
+     (last Path = Destination) )
+
+# heuristic is used to eliminate uninteresting searches (path already
+  too long), to select the destination if it is a candidate,
+  and to order the candidate node in ascending distance from the last
+  item in the path.
+
+heuristic is op path { if sum PAIRS distance path > bestscore then
+                           Null
+                       else
+                        candidates gets reachablefrom last path;
+                        if destination in candidates then
+                         solitary destination
+                        else
+                         gradeup (last path EACHRIGHT distance candidates)
+                          choose candidates
+                        endif
+                       endif
+                      }
+
+Init IS {
+  NONLOCAL Bestscore Bestpath;
+  Bestpath := Null;
+  Bestscore := 10000; }
+
+start IS { Nonlocal Destination ;
+     repeat
+     Init;
+     writescreen ' ';
+     Startnode gets phrase readscreen 'Starting city: ';
+     if startnode in nodes then
+        Destination gets phrase readscreen 'Ending city: ';
+        if destination in nodes then
+           ITERATE [Startnode] search (heuristic [Startnode]);
+           writescreen link 'Best Route: ' (sketch Bestpath);
+           writescreen link 'Total Distance: ' (sketch Bestscore)
+                                                 ' hundred kilometers';
+        else
+           writescreen 'I don''t know about that city';
+        endif;
+     else
+        writescreen 'I don''t know about that city';
+     endif;
+     more gets first readscreen 'Do you want to try another one? ';
+     until more = `n endrepeat;
+     }
+
+shortestpath is {
+   writescreen ' ';
+   writescreen '        Welcome to the Q''Nial Path Finding Program';
+   writescreen ' ';
+   writescreen 'This program will determine the shortest route to take when';
+   writescreen 'travelling among various North American cities.';
+   writescreen 'The initial set up will determine the shortest route between';
+   writescreen 'two cities that you name.  You can change the program, to';
+   writescreen 'solve your specific travel problems by changinging the';
+   writescreen 'definition of some of the Nial operations in the program.';
+   writescreen ' ';
+   writescreen 'The cities that are in the system are:  Montreal, Toronto,';
+   writescreen 'Kingston, Calgary, Vancouver, Boston, New_York,';
+   writescreen 'Washington, Chicago, San_Francisco, and Los_Angeles' ;
+   writescreen ' ';
+   start;
+}
+
+Latent is {
+   writescreen 'type shortestpath to run a back tracking solution for shortest path' ;
+}
+
+quiet gets Falsehood ;
+
+search is op currentpath candidate{
+   if not quiet then
+      p:=currentpath append candidate;
+      write "search p (sum pairs distance p);
+   endif;
+   if not terminalcondition then
+      if not(Candidate in currentpath) then
+         Newpath gets currentpath append candidate;
+         if haveapath newpath then
+            score newpath ;
+         else
+         ITERATE Newpath search (heuristic newpath);
+         endif;
+      endif;
+   endif;}
+
+Latent
+
+#
+Operation: wsdump Fileroot
+File: wsdump.ndf
+
+# Wsdump saves the workspace in a form that it can be reloaded using loaddefs.
+  The argument filename is a phrase or string without the ".ndf" extension.
+  The operation does not save itself.
+
+wsdump IS OPERATION __Filename__ {
+   __getval__ is op __nm__ { value __nm__};
+   __getdef__ is op __nm__ { getdef __nm__};
+   __savevars__ IS OPERATION Fno Vars {
+      FOR Name WITH SORT <= Vars DO
+         Str := list display __getval__ Name ;
+         Linelength := 60 ;
+         Lines := [];
+         WHILE not empty Str DO
+           Line Str := Linelength min tally Str [take,drop] Str;
+           WHILE and (Line match ` ) DO
+             Piece Str := 5 [take,drop] Str;
+             Line := Line link Piece;
+           ENDWHILE;
+           Lines := Lines append Line;
+         ENDWHILE;
+         Lines@0 := link '''' (string Name) ''' assign (' Lines@0;
+         N := tally Lines - 1;
+         Lines@N := link Lines@N ');';
+         ITERATE ( Fno writefile ) Lines ;
+         Fno writefile '' ;
+      ENDFOR ; } ;
+   __savedefs__ IS OPERATION Fno Exprs Ops Trs {
+      ITERATE ( Fno writefile ) link ( ( EACH string Exprs EACHLEFT link
+      ' IS EXTERNAL EXPRESSION' ) EACHLEFT pair '' ) ;
+      ITERATE ( Fno writefile ) link ( ( EACH string Ops EACHLEFT link
+      ' IS EXTERNAL OPERATION' ) EACHLEFT pair '' ) ;
+      ITERATE ( Fno writefile ) link ( ( EACH string Trs EACHLEFT link
+      ' IS EXTERNAL TRANSFORMER' ) EACHLEFT pair '' ) ;
+      FOR Name WITH SORT <= link Exprs Ops Trs DO
+         Def := descan deparse __getdef__ Name ;
+         ITERATE ( Fno writefile ) Def ;
+         Fno writefile '' ;
+      ENDFOR ; } ;
+   IF `. notin string __Filename__ THEN
+      __Filename__ := string __Filename__  link '.ndf' ;
+   ENDIF;
+   { % block to isolate names from the uses of value and getdef above;
+     Oldsetting := settrigger o;
+     Fno := open __Filename__  "w ;
+     IF not isfault Fno THEN
+        settrigger Oldsetting;
+        Names Types := pack symbols 0 ;
+        Vars Exprs Ops Trs := Types EACHRIGHT match "var "expr "op "tr
+        EACHLEFT sublist Names ;
+        Ops := Ops except [ "WSDUMP ] ;
+        Oldformat := setformat '%25.17g' ;
+        __savevars__ Fno Vars ;
+        __savedefs__ Fno Exprs Ops Trs ;
+        setformat Oldformat ;
+        close Fno ;
+     ELSE
+        settrigger Oldsetting;
+        Fno
+     ENDIF } }
+
+# Example:
+
+#        wsdump "myfile
+# teach.ndf
+
+# This program drives a number of example texts that are stored in *.dat
+files within the tutorial directory.
+
+Demoinfo := [
+"TOPIC "NAME,
+"----- "----,
+"Introduction "intro,
+"Data "data,
+(phrase 'Easy Operations') "ops,
+"Arithmetic "arith,
+"Syntax "syntax,
+(phrase 'Control Structures') "control,
+"Pervasive "pervasive,
+(phrase 'APL-like Operations') "apl,
+(phrase 'LISP-like Features') "lisp,
+(phrase 'Set Operations') "set,
+(phrase 'Artificial Intelligence') "ai,
+(phrase 'Host System Interface') "system,
+(phrase 'File Operations') "file,
+"Quit "quit];
+
+%Clrscrn IS { writescreen (15 1 reshape ' '); }
+
+library "towords
+
+# definitions used by ai.dat
+
+Animalfacts := ["cow "goat "cat "horse "dog,["brown (phrase 'gives milk'),(
+phrase 'gives milk') "white,"black "unlucky,"black (phrase '
+carries a rider'),"brown (phrase 'wags tail') (phrase 'pulls
+ a sled')]];
+
+add_assoc IS OPERATION Alist Association {
+      Symbol Val := Association ;
+      IF ischar first Val THEN
+         Val := phrase Val ;
+      ENDIF ;
+      Test Pos := seek Symbol ( first Alist ) ;
+      IF Test THEN
+         % Add this association to the list for the item matched.;
+         Values := Pos pick second Alist ;
+         IF Val notin Values THEN
+            Alist @ @ ( 1 Pos ) := Values append Val ;
+         ENDIF ;
+      ELSE
+         % This is a new item for the list.  Add it to the list.;
+         Alist := Alist EACHBOTH append Symbol [ Val ] ;
+      ENDIF ;
+      Alist }
+
+has_assoc IS OPERATION Alist Assoc {
+      Symbol Val := Assoc ;
+      IF ischar first Val THEN
+         Val := phrase Val ;
+      ENDIF ;
+      Test Pos := seek Symbol ( first Alist ) ;
+      IF Test THEN
+         %   Display the association list;
+         Val in ( Pos pick second Alist )
+      ELSE
+         o
+      ENDIF }
+
+lookup IS OPERATION Alist Symbol {
+      Test Pos := seek Symbol ( first Alist ) ;
+      IF Test THEN
+         Pos pick second Alist
+      ELSE
+         ??notfound
+      ENDIF }
+
+remove_assoc IS OPERATION Alist Assoc {
+      Symbol Val := Assoc ;
+      IF ischar first Val THEN
+         Val := phrase Val ;
+      ENDIF ;
+      Test Pos := seek Symbol ( first Alist ) ;
+      IF Test THEN
+         % Drop the association from the list of associated items;
+         Values := Pos pick second Alist ;
+         Alist @ @ ( 1 Pos ) := Values except Val ;
+      ENDIF ;
+      Alist }
+
+Start_assoc IS {
+      ( phrase '') ( phrase '') }
+
+sortdown IS SORT >=
+
+# utility routine
+
+fixquotes IS OP Str {
+  IF not empty Str THEN
+    Strs := `' match Str cutall Str;
+    Strs := `' EACHRIGHT hitch Strs;
+    IF first Str = `' THEN
+       link `' (link Strs) `' 
+    ELSE
+       (link Strs) append `' 
+    ENDIF
+  ELSE
+    `' `'
+  ENDIF }
+
+
+# routine to process the lesson files one line at a time.
+
+process IS OPERATION __Lines {
+      %Clrscrn ;
+      __Done := o ;
+      __I := 0;
+      WHILE not __Done and (__I < tally __Lines) DO
+         __Nextline := __Lines@__I ;
+         __I := __I + 1;
+         IF tally __Nextline = 0 THEN
+            writescreen ' ' ;
+         ELSE
+            IF first __Nextline = `. THEN
+               __Expart := 2 drop __Nextline ;
+               CASE second __Nextline FROM
+                     `r :
+                        writescreen __Expart ;
+                        END
+                     `n :
+                        writescreen link '   ' __Expart ;
+                        IF `' in __Expart THEN 
+                          __R := execute execute fixquotes __Expart;
+                        ELSE
+                          __R := execute __Expart ;
+                        ENDIF;
+                        IF __R ~= ??noexpr THEN
+                           write __R ;
+                        ENDIF ;
+                        END
+                     `b :
+                        writescreen link '    ' __Expart ;
+                        REPEAT
+                           __Nextline := __Lines@__I;
+                           __I := __I + 1;
+                           __Expart := link __Expart ' ' ( 2 drop __Nextline ) ;
+                           writescreen link '    ' ( 2 drop __Nextline ) ;
+                        UNTIL 2 take __Nextline = '.e'
+                        ENDREPEAT ;
+                        R := execute __Expart ;
+                        IF R ~= ??noexpr THEN
+                           write R ;
+                        ENDIF ;
+                        END
+                     `c :
+                        writescreen link ( 78 - tally __Expart quotient 2 reshape
+ ' ' ) __Expart ;
+                        END
+                     `s :
+                        execute __Expart ;
+                        END
+                     `p :
+                        writescreen ' ' ;
+                        R := readscreen
+ 'Press <Enter> to continue, <b> to backup, <n> for nial, <q> to quit: ' ;
+                        IF first R in 'qQ' THEN
+                           __Done := l ;
+                        ELSEIF first R in 'nN' THEN
+                             Writescreen null;
+                             Writescreen 'Enter some NIAL code and press enter';
+                             Writescreen '(Press Enter with no text to continue)';
+                             REPEAT 
+                               code := Readscreen '    >';
+                               IF not empty code THEN
+                                 res := execute code;
+                                 writescreen picture res;
+                               ENDIF;
+                             UNTIL
+				 empty code
+                             ENDREPEAT;
+                        ELSEIF first R in 'bB' THEN
+                           % get back to beginning of this page;
+                           __I := __I - 1; 
+                           WHILE 2 take __Lines@(__I - 1) ~= '.p' DO 
+                              __I := __I - 1; 
+                              IF __I < 0 THEN __I := 0; EXIT 0 ENDIF; 
+                           ENDWHILE;
+                           % get back to beginning of previous page;
+                           __I := __I - 1; 
+                           IF __I > 0 THEN
+                              WHILE 2 take __Lines@(__I - 1) ~= '.p' DO 
+                                 __I := __I - 1; 
+                                 IF __I < 0 THEN __I := 0; EXIT 0 ENDIF; 
+                              ENDWHILE;
+                           ENDIF;
+                        ENDIF ;
+                        %Clrscrn;
+                        END
+                     `q :
+                        __Done := l ;
+                        END
+               ENDCASE ;
+            ELSE
+               writescreen __Nextline;
+            ENDIF ;
+         ENDIF ;
+      ENDWHILE ;
+      }
+
+#Main menu driver for the teaching program
+
+Teach IS {
+      settrigger o ;
+      Again := l ;
+      Mode := set "sketch ;
+      WHILE Again DO
+         Again := o;
+         set "sketch ;
+         set "nodecor ;
+         %Clrscrn ;
+         EACH write ['Q''Nial EXAMPLES', ' ', ( mix Demoinfo ), ' '] ;
+         Filename := phrase tolower readscreen
+ 'ENTER the name of the desired demonstration and press <RETURN> : ' ;
+         write link ['You entered: ', string Filename];
+         IF ( Filename in "quit "q "QUIT "Q ) THEN
+            Again := o ;
+         ELSEIF Filename in EACH second Demoinfo THEN
+            Filepath := link NialRoot Os_Path_Separator 'tutorial' Os_Path_Separator (string Filename) '.dat';
+            Lines := getfile Filepath;
+            IF isfault Lines THEN
+               write link ' *** ' ( sketch Filename ) ' not found ***' ;
+               readscreen ' Press <Enter> to choose again. ' ;
+            ELSE
+               process Lines ;
+            ENDIF ;
+         ELSE
+            readscreen 'Unknown demo name.  Press <Enter> to choose again. ';
+         ENDIF ;
+      ENDWHILE ;
+      set Mode ;
+      }
+
+
+Latent is Teach
+
+
+Latent
+
+#
+File: findpath.ndf
+Operation: findpaths Item Array
+
+# This operation returns a list of the paths to an item in the given array.
+
+findpaths IS OPERATION Item Array {
+   findpath2 IS OPERATION Item Array Pathsofar {
+      IF Array = Item THEN
+         solitary Pathsofar
+      ELSEIF atomic Array THEN
+         Null
+      ELSE
+         link EACHALL findpath2 ( single Item ) Array ( Pathsofar EACHRIGHT
+         append grid Array )
+      ENDIF } ;
+   findpath2 Item Array Null }
+
+   findpath IS first findpaths
+
+
+# EXAMPLES:
+        A := 0 2 ( 1 2 ( 2 2 ) )
++-+-+---------+
+|0|2|+-+-+---+|
+| | ||1|2|2 2||
+| | |+-+-+---+|
++-+-+---------+
+        findpaths 2 A
++-+---+-----+-----+
+|1|2 1|2 2 0|2 2 1|
++-+---+-----+-----+
+        B := 2 3 reshape EACH tell 6
++-----------+-----------+-----------+
+|0 1 2 3 4 5|0 1 2 3 4 5|0 1 2 3 4 5|
++-----------+-----------+-----------+
+|0 1 2 3 4 5|0 1 2 3 4 5|0 1 2 3 4 5|
++-----------+-----------+-----------+
+        findpaths 0 B
++-------+-------+-------+-------+-------+-------+
+|+---+-+|+---+-+|+---+-+|+---+-+|+---+-+|+---+-+|
+||0 0|0|||0 1|0|||0 2|0|||1 0|0|||1 1|0|||1 2|0||
+|+---+-+|+---+-+|+---+-+|+---+-+|+---+-+|+---+-+|
++-------+-------+-------+-------+-------+-------+
+# count_all.ndf
+
+# Count the number of characters, words and line in a file.
+
+count_all IS OPERATION Filename {
+   Records := getfile Filename ;
+   Lines Characters := [tally, sum EACH tally] Records ;
+   Words := sum (EACH tally ((Records EACHLEFT match ` ) EACHBOTH cut Records));
+   Characters Words Lines }
+
+#Example:
+     count_all (Nialroot link '/niallib/average.ndf')
+189 38 13
+
+#
+Transformer: replace Predicate Array Value
+File: replace.ndf
+
+# The replace transformer replaces the items in the given array that satisfy
+  the predicate by the given value.
+
+REPLACE IS TRANSFORMER test
+   OPERATION Array Value {
+      ( single Value ) ( EACH test Array sublist grid Array ) placeall Array }
+
+# Examples:
+
+#        REPLACE (` =) 'The cat and the mouse' `*
+The*cat*and*the*mouse
+
+#        REPLACE isfault (3 ??error 4) "****
+3 **** 4
+#
+Operation: border Table Border_item
+File: border.ndf
+
+# This operation constructs a border around a table using a specified value.
+
+border IS OPERATION Table Value {
+   Bordrow := second shape Table reshape Value ;
+   Tblcols := pack link [ Bordrow ] ( rows Table ) [ Bordrow ] ;
+   Bordcol := shape first Tblcols reshape Value ;
+   mix pack link [ Bordcol ] Tblcols [ Bordcol ] }
+
+# Example:
+
+#        border (2 3 reshape 'abcdef') `+
++++++
++abc+
++def+
++++++
+#
+Operations: filelist Path Pattern
+            filelist1 Patttern
+
+#
+File: filelist.ndf
+
+# Two utility operations to return a list of files given a pattern.
+
+# fileist Path Pattern
+  The Path gives path from the user's home directory to
+  the directory containing the files to be selected.  
+  The Pattern must be an appropriate pattern for 'ls'.
+  The result is the list of filenames as strings.
+
+# filelist Pattern
+  THe files are selected from the current directory unless the Pattern itself
+  includes a path.
+  The result is a list of strings with the filenames preceded by the path 
+  provided in the Pattern.
+
+library "newhost
+
+filelist IS OPERATION Path Pattern { 
+   Cmd := link '\ls -da ' Path Os_Path_Separator ( string Pattern ); 
+   Nms := newhost Cmd;
+   IF not empty Nms THEN
+     last (first OS_Path_Separator findall (first Nms)+1) EACHRIGHT drop Nms
+   ELSE
+     Nms
+   ENDIF
+} 
+
+filelist1 IS OPERATION Pattern {  
+      newhost ( link '\ls -da ' ( string Pattern ) ) 
+} 
+
+
+#Examples
+
+#
+ 'QNial7/niallib' filelist '*.ndf'
+
+#
+filelist1 '*'
+
+#
+ filelist1 'QNial7/niallib/*.ndf'
+#
+Operation: labeltable Corner Rowlabels Collabels Table
+Operation: totaltable Corner Rowlabels Collabels Table
+File: labeltab.ndf
+
+# Labeltable labels Table with the corner label in the upper left corner, the
+  column labels at the top, and the row labels on the left side.  Totaltable
+  adds an extra row and column showing totals of each column and row.
+
+labeltable IS OPERATION Corner Rowlabel Columnlabel Table {
+   % Combine the corner label with the column labels for first line ;
+   Firstrow := Corner hitch Columnlabel ;
+   % Hitch the row labels to the rows of the table ;
+   Labelledrows := Rowlabel EACHBOTH hitch rows Table ;
+   % Hitch the first row of labels to the labelled rows and mix them ;
+   mix ( Firstrow hitch Labelledrows ) }
+
+totaltable IS OPERATION Corner Rowlabel Columnlabel Table {
+   mix ( link Corner Columnlabel "Total hitch ( Rowlabel EACHBOTH link
+   ( rows Table EACHBOTH link ( EACH sum rows Table ) ) ) append ( link "Total
+   ( sum rows Table ) ( sum Table ) ) ) }
+
+# Examples:
+
+#        X := count 3 ;
+         labeltable "TIMES X X (X OUTER times X)
+TIMES 1 2 3
+    1 1 2 3
+    2 2 4 6
+    3 3 6 9
+
+#   Y gets 3 3 reshape 15 3 27 -4 56 27 18 24 -3;     
+    totaltable "Y X X Y
+Y      1  2  3 Total
+    1 15  3 27    45
+    2 -4 56 27    79
+    3 18 24 -3    39
+Total 29 83 51   163
+# INTEGRATE f A B Eps
+
+# Find the integral of the function f over the interval A B using the
+  technique known as Romberg Integration.
+
+# The stopping criteria Eps guarantees the relative accuracy of the
+  answer.  Normally the result is considerably more accurate.  The
+  suggested value for Eps is 1e-6.
+
+# The function can be edited to change the internal comments to
+  write statements that will display the intermediate results.
+  This version of Integrate works well on smooth functions.
+
+# EXAMPLE:  INTEGRATE sin 0 Pi 1e-6
+
+INTEGRATE IS TRANSFORMER f
+    OPERATION A B Eps {
+       N := 4 ;
+       Endpoints := A B ;
+       Endpointsum := sum EACH f Endpoints ;
+       H := B - A / N ;
+       Internalpoints := A + H times count ( N - 1 ) ;
+       Internalsum := 2 * sum EACH f Internalpoints ;
+       Trap := sum Internalsum Endpointsum * H / 2.0 ;
+       K := 0 ;
+       R_table := 10 10 reshape 0. ;
+       R_table @ [ 0 , 0 ] := Trap ;
+       FOR K WITH count 9 DO
+          H := H / 2.0 ;
+          Newpoints := A + ( H times ( 1 + ( 2 * tell N ) ) ) ;
+          N := N * 2 ;
+          Internalsum := Internalsum + ( 2 * sum EACH f Newpoints ) ;
+          Trap := sum Internalsum Endpointsum * H / 2.0 ;
+          R_table @ [ K , 0 ] := Trap ;
+          FOR J WITH count K DO
+             P := 4.0 power J - 1.0 ;
+             R_table @ [ K - J , J ] := R_table @ [ K - J + 1 , J - 1
+             ] + ( R_table @ [ K - J + 1 , J - 1 ] - R_table @ [ K -
+             J , J - 1 ] / P ) ;
+          ENDFOR ;
+   %writescreen ' Romberg table ';
+   %write ((K+1)(K+1)take R_table);
+          T1 := R_table @ [ 1 , K - 1 ] ;
+          T2 := R_table @ [ 0 , K ] ;
+          IF abs ( T2 - T1 ) <= ( abs ( T2 ) * Eps ) THEN
+             EXIT T2 ;
+          ENDIF ;
+       ENDFOR ;
+       T2 }
+
+# reverse_polish.ndf
+
+# Simulates a calculator which takes input in reverse polish notation.
+
+Stack IS EXTERNAL VARIABLE
+
+push IS OPERATION Item {
+   NONLOCAL Stack ;
+   Stack := link Item Stack ; }
+
+pop IS {
+   NONLOCAL Stack ;
+   Item Stack := [first,rest] Stack ;
+   Item }
+
+reverse_polish IS OPERATION Line {
+   NONLOCAL Stack ;
+   Svtrigger := settrigger o;
+   Stack := Null ;
+   Items := ` match Line cut Line ;
+   FOR Item WITH Items DO
+      IF first Item in '+-*/' THEN
+         write link 'Operation: ' Item ;
+      ENDIF ;
+      CASE first Item FROM
+         `+ : push sum Pop Pop ; END
+         `- : push sum ( opp Pop ) Pop ; END
+         `* : push prod Pop Pop ; END
+         `/ : push prod ( recip Pop ) Pop ; END
+      ELSE
+         push ( execute Item ) ;
+      ENDCASE ;
+      write link ( phrase ' Stack: ' )       Stack ;
+   ENDFOR ;
+   settrigger Svtrigger;
+   first Stack }
+
+#Examples:
+     setformat '%6.2f' ;
+     reverse_polish '3.14 2. * 7.6 3.2 - - 6.1 2.2 - *'
+ Stack:    3.14
+ Stack:    2.00   3.14
+Operation: *
+ Stack:    6.28
+ Stack:    7.60   6.28
+ Stack:    3.20   7.60   6.28
+Operation: -
+ Stack:    4.40   6.28
+Operation: -
+ Stack:    1.88
+ Stack:    6.10   1.88
+ Stack:    2.20   6.10   1.88
+Operation: -
+ Stack:    3.90   1.88
+Operation: *
+ Stack:    7.33
+  7.33
+
+#
+     reverse_polish '32.5 0. / 7. 9. * +'
+ Stack:   32.50
+ Stack:    0.00  32.50
+Operation: /
+ Stack:  ?div
+ Stack:    7.00 ?div
+ Stack:    9.00   7.00 ?div
+Operation: *
+ Stack:   63.00 ?div
+Operation: +
+ Stack:  ?div
+?div
+
+#
+     reverse_polish '32.5 0.1 / 7. 9. / +'
+ Stack:   32.50
+ Stack:    0.10  32.50
+Operation: /
+ Stack:  325.00
+ Stack:    7.00 325.00
+ Stack:    9.00   7.00 325.00
+Operation: /
+ Stack:    0.78 325.00
+Operation: +
+ Stack:  325.78
+325.78
