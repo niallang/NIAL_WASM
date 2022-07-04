@@ -94,6 +94,9 @@
 
     function loadAURL() {
 	var url = prompt("Enter URL to load");
+
+	if (url == null || url.length == 0)
+	    url = "./examples/initial.ndf";
 	
 	loadURL(url);
     }
