@@ -46,19 +46,28 @@
 	    border-style: groove;
       }
 	
+      #nialdoc {
+	  width: 100%;
+          background: mintcream;
+          color: black;
+          text-align:left;
+	  font-size: 9pt;
+      }
+	
+
     </style>
     
 </head> 
   
 <body> 
   
-  <h6>Nial Output</h6>
+  <h5>Nial Output</h5>
   <textarea id = "nialout"></textarea>
   
-  <h6>Terminal Input (Press Enter to execute line)</h6>
+  <h5>Single Line Terminal Input (Enter Nial code and press enter to execute)</h5>
   <input type="text" id="nialterm" value="2 3 4 reshape reverse tell 24"><br>
 
-  <h6>Editor Input (Edit Nial Text, press Ctrl-Enter to execute selection or current line)</h6>
+  <h5>CodeMirror Editor Input (Edit Nial Text, press Ctrl-Enter to execute selection or current line)</h5>
   <textarea id = "nialin"></textarea>
   <button onclick="execnial()">Execute Selection</button>
   <button onclick="clearInput()">Clear Editor</button>
@@ -71,7 +80,10 @@
   <script src="lib/codemirror.js"></script>
   <script src="addon/mode/simple.js"></script>
   <script src="mode/nial/nial.js"></script>
+  
   <script>
+    window.nial_input = "tell 2 3 4";
+    
     const nialInputArea = document.getElementById("nialin");	
     var editor = CodeMirror.fromTextArea(nialInputArea, {
 	lineNumbers: true
@@ -83,8 +95,20 @@
 			       "# Select a line of number of lines of text and execute them.",
 			       "# Then edit them and try again",
 			       " ",
-			       "% A simple example;",
+			       "% List the first 15 numbers;",
+			       "tell 15",
+			       " ",
+			       " Turn those numbers into a 5x3 array;",
+			       "5 3 reshape tell 15",
+			       " ",
+			       "% Multiply the columns of that array as vectors;",
+			       "* cols (5 3 reshape tell 15)",
+			       " ",
+			       "% A simple example of a cartesian product;",
 			       "1 2 3 cart 4 5 6 7",
+			       " ",
+			       "% That gives us an array of pairs, multiply each of those pairs;",
+			       "each * (1 2 3 cart 4 5 6 7)",
 			       " "
 			      ];
 		  
@@ -152,7 +176,7 @@
     // Append the output text
     function appendToOutput(txt) {
 	const out = document.getElementById("nialout");
-
+	//alert("Adding output: " + txt);
 	out.value += txt;
 	scrollToBottom("nialout");
 	return;
@@ -160,6 +184,7 @@
 
 
     function nial_write_prompt(txt) {
+	//alert("Nial prompt: "+txt);
 	appendToOutput(txt);
     }
 
@@ -243,6 +268,7 @@
 
     // Pass back the number of items on the input queue
     function getNialCount() {
+	//alert("Get Nial Count: " +  nial_input_queue.length);
 	return nial_input_queue.length;
     }
     
@@ -280,7 +306,41 @@
     </script>
 
   <script type="text/javascript" src="nial.js"></script>
+
+  <div>
     
+    <h5>Welcome to the WASM version of Nial.</h5>
+
+    <span id="nialdoc">
+      <p>This is a nearly complete version of Nial built using the Emscripten SDK. It comes with a
+	transient UNIX file system, home directory and Nial library.
+      </p>
+      
+      <p>You can write and read files
+	during a session but the
+	contents will disappear when you close or reload the browser window.
+      </p>
+
+      <p>
+	Nial input for evaluation can be done in one of two ways. 
+	You can either use the single line input mode and press return to evaluate it or you
+	can compose Nial code in the CodeMirror editor for evaluation.
+      </P>
+
+      <p>
+	In the CodeMirror window you can select a block of text and either press the <em>Execute</em>
+	button or type <em>Control/Return</em> to execute the code. If you just want to execute a single line
+	you can go to that line and type <em>Control/Return</em>.
+      </p>
+
+      <p>
+	For more information on Nial including the language definition, tutorials and details of the library functions
+	go to the <a href="https://www.nial-array-language.org/">Nial Language Website</a>.
+      </p>
+      
+      
+  </div>
+  
   
 </body> 
 
