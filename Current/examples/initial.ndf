@@ -1,0 +1,68 @@
+# Welcome to Codemirror and Nial Examples
+ 
+Select a line or a number of lines of text and execute
+Then edit them and try again
+
+% A simple example, the cartesian product;
+
+x := 1 2 3 cart 4 5 6 7
+
+% Get the shape of the result;
+
+shape x
+
+% Transpose x;
+
+transpose x
+
+% Add the pairs;
+
++ x
+
+% Add the contents of each pair;
+
+each + x
+
+% Get the square root of the sum of the squares of each pair;
+
+sqrt + (x * x)
+
+% Work with arrays of characters, single quotes delimit an array of chars;
+
+ca := 'able was I ere I saw elba'
+
+% is it a palindrome?;
+
+ca = reverse ca
+
+% Split it up by spaces (`a indicates the character a);
+
+cas := (`  match ca) cut ca
+
+% Get the unique words in the sentence;
+
+caw := cull cas
+
+% Sort them in ascending order;
+
+scaw := sort < caw
+
+% Get the index order of the sorted words;
+
+scaw eachleft find caw
+
+
+
+
+
+
+
+
+
+
+
+
+
+			       
+			  
+
