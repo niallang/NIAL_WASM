@@ -1,14 +1,14 @@
 title: Nial WASM System
 author:
   name: John Gibbons
-  email: gibbos.ja@gmail.com
+  email: gibbons.ja@gmail.com
 
 # The `>` after `description:` means to ignore line-breaks until next key.
 # If you want to omit the line-break after the end of text, use `>-` instead.
 description: >
   This contains an implementation of the Nial programming language that runs in the browser.
   It was built from the standard C implementation of Nial using the Emscripten SDK. 
-  It is almost a complete implementation of Nial but currently lack the CTRL/C interrupt features.
+  It is almost a complete implementation of Nial but currently lacks the CTRL/C interrupt features.
 
 # Build settings
 

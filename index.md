@@ -1,10 +1,11 @@
 ---
+title: Nial using Emscripten
 layout: home
 ---
 
-# Nial Emscripten
+# Nial with Emscripten
 
-Welcome to the online/in-your-browser version of Nial.
+Welcome to the online version of Nial running completely in your browser.
 
-You can access this using the link [[Nial Interpreter]](current/index.html)
+You can access the interpreter using the link [[Nial Interpreter]](current/index.html)
 
