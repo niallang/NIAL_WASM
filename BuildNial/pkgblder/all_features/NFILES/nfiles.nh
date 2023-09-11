@@ -4,4 +4,6 @@ NFILES   U rename irename
 NFILES   U fullpathname ifullpathname
 NFILES   U dirlist idirlist
 NFILES   U rmfile iremove
+NFILES   U chdir ichdir
+NFILES   E getwd igetwd
 

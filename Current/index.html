@@ -4,7 +4,7 @@
   <head>
     <meta charset="UTF-8">
 
-    <title>Nial WASM</title>
+    <title>Nial in the Browser</title>
 
     <script type="text/javascript" src="https://code.jquery.com/jquery-latest.js"></script>
 
@@ -72,7 +72,7 @@
   <button onclick="execnial()">Execute Selection</button>
   <button onclick="clearInput()">Clear Editor</button>
   <button onclick="clearNialOutput()">Clear Output</button>
-  <button>Examples</button>
+  <!-- <button>Examples</button> -->
   
   
   <!-- Create a simple CodeMirror instance -->
@@ -91,25 +91,75 @@
     editor.setSize(null, 200);
 
     const initialEditorText = ["# Welcome to Codemirror and Nial Examples",
-			       " ",
-			       "# Select a line of number of lines of text and execute them.",
+			       "# Select a line or number of lines of text and execute them.",
 			       "# Then edit them and try again",
+			       "",
+			       "# ----------------- Basics --------------------",
 			       " ",
-			       "% List the first 15 numbers;",
+			       " NIAL stands for Nested Interactive Array Language.",
+			       " ",
+			       " Arrays can be of any dimension (valence) and can be nested",
+			       "   Valence 0 arrays are called scalars",
+			       "   Valence 1 are called sets, vectors or lists",
+			       "   Valence 2 are matrices",
+			       "   Higher valence are just arrays",
+			       " ",
+			       " Nial basic datatypes are: ",
+			       "   Characters  `a,`b ...",
+			       "   Integers    123 etc", 
+			       "   Booleans    l (true), o (false)",
+			       "   Reals       3.14159e10, ",
+			       "   Phrases     \"abc12  (symbols) ",
+			       "   Faults      ?no_way, ??yes_way (exceptions) ",
+			       " ",
+			       " and nested arrays of these types",
+			       " ",
+			       " Nial also has a large library of builtin operators (functions) that allow you",
+			       " to create and manipulate arrays. In addition you can define your own operators",
+			       "",
+			       "# ------------------ Simple Examples ----------------",
+			       "",
+			       "% List the first 15 numbers starting at 0;",
 			       "tell 15",
-			       " ",
-			       " Turn those numbers into a 5x3 array;",
+			       "",
+			       "% Turn those numbers into a 5x3 array;",
 			       "5 3 reshape tell 15",
-			       " ",
+			       "",
 			       "% Multiply the columns of that array as vectors;",
 			       "* cols (5 3 reshape tell 15)",
-			       " ",
+			       "",
+			       "% All Nial operators can appear in a prefix or infix position;",
+			       "10*reshape [5 3, tell 15]",
+			       "",
+			       "# All operators have the same left binding power and the same right binding power.",
+			       " However the right binding power is greater than the left. ",
+			       "",
+			       "% In prefix form multiply two vectors element by element and sum the result;",
+			       "+ * (1 2) (10 20)",
+			       "",
+			       "% Then allow * to be used in infix form;",
+			       "+ (1 2 * 10 20)",
+			       "",
+			       "% Note that in the following form + grabs the argument to its right,",
+			       "  adds 1 and 2 and passes that as the left argument to *;",
+			       "+ 1 2 * 10 20",
+			       "",
 			       "% A simple example of a cartesian product;",
 			       "1 2 3 cart 4 5 6 7",
-			       " ",
-			       "% That gives us an array of pairs, multiply each of those pairs;",
+			       "",
+			       "% The cartesian product gives us an array of pairs, multiply each of those pairs;",
 			       "each * (1 2 3 cart 4 5 6 7)",
-			       " "
+			       "",
+			       "# ------------------- Unicode --------------------------- ",
+			       "# Nial in the Browser supports UTF-8 style Unicode",
+			       "# Unicode characters can appear in strings, variable names and phrases",
+			       "",
+			       "ι is tell; % Use iota for tell;",
+			       "ι1 is count; % Use iota with 1 for count;", 
+			       "ρ is reshape; % Use rho for reshape;",
+			       "",
+			       "2 3 4 ρ ι 24",
+			       ""
 			      ];
 		  
     // editor.setValue(iniialEditorText.join("\r\n"));
@@ -185,7 +235,7 @@
 
     function nial_write_prompt(txt) {
 	//alert("Nial prompt: "+txt);
-	appendToOutput(txt);
+	appendToOutput("\r\n"+txt);
     }
 
     // Execute either the selected text in the input area or the current
