@@ -72,7 +72,7 @@
   <button onclick="execnial()">Execute Selection</button>
   <button onclick="clearInput()">Clear Editor</button>
   <button onclick="clearNialOutput()">Clear Output</button>
-  <!-- <button>Examples</button> -->
+  <button onclick="showTutorial()">Tutorial/Examples</button>
   
   
   <!-- Create a simple CodeMirror instance -->
@@ -222,7 +222,7 @@
 	return;
     }
 
-    
+
     // Append the output text
     function appendToOutput(txt) {
 	const out = document.getElementById("nialout");
@@ -304,6 +304,10 @@
     }
 
 
+    function showTutorial()  {
+	nial_input_queue.enqueue('library "teach');
+    }
+    
     // Support function to pass input to Nial. This function
     // exists to allow us to change input methods
     function getNialInput() {
