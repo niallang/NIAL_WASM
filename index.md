@@ -29,5 +29,5 @@ If you just want to execute a single line you can go to that line and type
 
 For more information on **Nial** including the language definition, tutorials
 and details of the library functions go to the 
-[Nial Language Website](https://www.nial-array-lannguage.org).
+[Nial Language Website](https://www.nial-array-language.org).
 
